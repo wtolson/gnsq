@@ -70,6 +70,9 @@ def _command(*params):
     assert len(params) > 0
     return ' '.join(params) + NEWLINE
 
+def _packmessage(data):
+    return struct.pack('>l', len(data)) + data
+
 def subscribe(topic_name, channel_name, short_id, long_id):
     assert is_valid_topic_name(topic_name)
     assert is_valid_channel_name(channel_name)
@@ -77,11 +80,12 @@ def subscribe(topic_name, channel_name, short_id, long_id):
 
 def publish(topic_name, data):
     assert is_valid_topic_name(topic_name)
-    return ''.join([
-        _command('PUB', topic_name),
-        struct.pack('>l', len(data)),
-        data
-    ])
+    return _command('PUB', topic_name) + _packmessage(data)
+
+def multipublish(topic_name, messages):
+    assert is_valid_topic_name(topic_name)
+    messages = ''.join([_packmessage(m) for m in messages])
+    return _command('MPUB', topic_name) + _packmessage(''.join(messages))
 
 def ready(count):
     return _command('RDY', str(count))

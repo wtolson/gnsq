@@ -3,9 +3,9 @@ import random
 import gevent
 import blinker
 
-from .lookupd    import Lookupd
-from .connection import Connection
-from .util       import assert_list
+from .lookupd import Lookupd
+from .nsqd    import Nsqd
+from .util    import assert_list
 
 from .errors import (
     NSQSocketError,
@@ -104,7 +104,7 @@ class Reader(object):
         assert isinstance(http_port, int)
 
         print 'Connecting to %s:%s...' % (address, tcp_port)
-        conn = Connection(address, tcp_port, http_port)
+        conn = Nsqd(address, tcp_port, http_port)
         self.stats[conn] = self.get_stats(conn)
 
         if conn in self.conns:

@@ -1,29 +1,26 @@
-import re
+ import re
 import requests
 import blinker
-
-from . import protocal as nsq
-from . import errors
 
 import gevent
 from gevent import socket
 from gevent.queue import Queue
 from gevent.event import AsyncResult
 
+from . import protocal as nsq
+from . import errors
+
 from .message import Message
 
 HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
-class Connection(object):
+class Nsqd(object):
     def __init__(self, address, tcp_port=None, http_port=None, timeout=120):
         self.address   = address
         self.tcp_port  = tcp_port
         self.http_port = http_port
         self.timeout   = timeout
-
-        self.closed      = False
-        self.ready_count = 0
 
         self.on_response = blinker.Signal()
         self.on_error    = blinker.Signal()
@@ -34,14 +31,13 @@ class Connection(object):
         self._send_worker = gevent.spawn(self._send)
         self._send_queue  = Queue()
 
-        self._buffer           = ''
-        self._socket           = None
-        self._on_next_response = None
-        self._frame_handlers   = {
+        self._frame_handlers = {
             nsq.FRAME_TYPE_RESPONSE: self.handle_response,
             nsq.FRAME_TYPE_ERROR:    self.handle_error,
             nsq.FRAME_TYPE_MESSAGE:  self.handle_message
         }
+
+        self._reset()
 
     def stats(self):
         url  = 'http://%s:%s/stats?format=json' % (self.address, self.http_port)
@@ -67,6 +63,7 @@ class Connection(object):
 
         if async:
             return result
+
         result.get()
 
     def _send(self):
@@ -79,9 +76,11 @@ class Connection(object):
             except Exception as error:
                 result.set_exception(error)
 
-    def _close(self):
-        self.closed = True
-        self._socket.close()
+    def _reset(self):
+        self.ready_count       = 0
+        self._buffer           = ''
+        self._socket           = None
+        self._on_next_response = None
 
     def _readn(self, size):
         while len(self._buffer) < size:
@@ -117,7 +116,8 @@ class Connection(object):
             self.nop()
 
         elif data == 'CLOSE_WAIT':
-            self._close()
+            self._socket.close()
+            self._reset()
 
         elif self._on_next_response is not None:
             self._on_next_response(self, response=data)
@@ -141,7 +141,7 @@ class Connection(object):
         return message
 
     def listen(self):
-        while not self.closed:
+        while self._socket:
             self.read_response()
 
     def subscribe(self, topic, channel, short_id=SHORTNAME, long_id=HOSTNAME):
@@ -149,6 +149,9 @@ class Connection(object):
 
     def publish(self, topic, data):
         self.send(nsq.publish(topic, data))
+
+    def multipublish(topic, messages):
+        self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
         self.ready_count = count
