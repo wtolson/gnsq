@@ -78,6 +78,7 @@ class Nsqd(object):
 
     def _reset(self):
         self.ready_count       = 0
+        self.in_flight         = 0
         self._buffer           = ''
         self._socket           = None
         self._on_next_response = None
@@ -136,6 +137,7 @@ class Nsqd(object):
 
     def handle_message(self, data):
         self.ready_count -= 1
+        self.in_flight   += 1
         message = Message(self, *nsq.unpack_message(data))
         self.on_message.send(self, message=message)
         return message
@@ -159,10 +161,12 @@ class Nsqd(object):
 
     def finish(self, message_id):
         self.send(nsq.finish(message_id))
+        self.in_flight -= 1
         self.on_finish.send(self, message_id=message_id)
 
     def requeue(self, message_id, timeout):
         self.send(nsq.requeue(message_id, timeout))
+        self.in_flight -= 1
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def close(self):
