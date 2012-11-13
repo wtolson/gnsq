@@ -12,7 +12,7 @@ class BackoffTimer(object):
         self.c = 0
         return self
 
-    def succuss(self):
+    def success(self):
         self.c = max(self.c-1, 0)
         return self
 
