@@ -37,7 +37,7 @@ class Nsqd(object):
             nsq.FRAME_TYPE_MESSAGE:  self.handle_message
         }
 
-        self._reset()
+        self.reset()
 
     def stats(self):
         url  = 'http://%s:%s/stats?format=json' % (self.address, self.http_port)
@@ -76,7 +76,7 @@ class Nsqd(object):
             except Exception as error:
                 result.set_exception(error)
 
-    def _reset(self):
+    def reset(self):
         self.ready_count       = 0
         self.in_flight         = 0
         self._buffer           = ''
@@ -118,7 +118,7 @@ class Nsqd(object):
 
         elif data == 'CLOSE_WAIT':
             self._socket.close()
-            self._reset()
+            self.reset()
 
         elif self._on_next_response is not None:
             self._on_next_response(self, response=data)
