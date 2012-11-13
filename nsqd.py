@@ -114,7 +114,10 @@ class Nsqd(object):
 
     def handle_response(self, data):
         if data == '_heartbeat_':
-            self.nop()
+            try:
+                self.nop()
+            except socket.error as error:
+                raise errors.NSQFrameError(str(error))
 
         elif data == 'CLOSE_WAIT':
             self._socket.close()
