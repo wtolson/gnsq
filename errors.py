@@ -1,10 +1,12 @@
+import socket
+
 class NSQException(Exception):
     pass
 
 class NSQRequeueMessage(NSQException):
     pass
 
-class NSQSocketError(NSQException):
+class NSQSocketError(socket.error, NSQException):
     pass
 
 class NSQFrameError(NSQException):

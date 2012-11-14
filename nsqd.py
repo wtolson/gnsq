@@ -54,8 +54,13 @@ class Nsqd(object):
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.settimeout(self.timeout)
-        self._socket.connect((self.address, self.tcp_port))
-        self._socket.send(nsq.MAGIC_V2)
+
+        try:
+            self._socket.connect((self.address, self.tcp_port))
+        except socket.error as error:
+            raise errors.NSQSocketError(*error)
+
+        self.send(nsq.MAGIC_V2)
 
     def send(self, data, async=False):
         result = AsyncResult()
@@ -74,7 +79,7 @@ class Nsqd(object):
                 result.set(True)
 
             except socket.error as error:
-                result.set_exception(errors.NSQSocketError(str(error)))
+                result.set_exception(errors.NSQSocketError(*error))
 
             except Exception as error:
                 result.set_exception(error)
@@ -88,9 +93,13 @@ class Nsqd(object):
 
     def _readn(self, size):
         while len(self._buffer) < size:
-            packet = self._socket.recv(4096)
+            try:
+                packet = self._socket.recv(4096)
+            except socket.error as error:
+                raise errors.NSQSocketError(*error)
+
             if not packet:
-                raise errors.NSQSocketError("failed to read %d" % size)
+                raise errors.NSQSocketError(-1, "failed to read %d" % size)
 
             self._buffer += packet
 
