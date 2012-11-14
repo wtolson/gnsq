@@ -73,6 +73,9 @@ class Nsqd(object):
                 self._socket.send(data)
                 result.set(True)
 
+            except socket.error as error:
+                result.set_exception(errors.NSQSocketError(str(error)))
+
             except Exception as error:
                 result.set_exception(error)
 
@@ -114,10 +117,7 @@ class Nsqd(object):
 
     def handle_response(self, data):
         if data == '_heartbeat_':
-            try:
-                self.nop()
-            except socket.error as error:
-                raise errors.NSQFrameError(str(error))
+            self.nop()
 
         elif self._on_next_response is not None:
             self._on_next_response(self, response=data)
