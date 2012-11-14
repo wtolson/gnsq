@@ -50,7 +50,7 @@ class Nsqd(object):
 
     def connect(self):
         if self._socket is not None:
-            return
+            raise NSQException('Already connected.')
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.settimeout(self.timeout)
