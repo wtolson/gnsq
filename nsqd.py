@@ -50,7 +50,7 @@ class Nsqd(object):
 
     def connect(self):
         if self._socket is not None:
-            raise NSQException('Already connected.')
+            raise NSQException('already connected')
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.settimeout(self.timeout)
@@ -74,6 +74,10 @@ class Nsqd(object):
     def _send(self):
         while 1:
             data, result = self._send_queue.get()
+            if self._socket is None:
+                result.set_exception(errors.NSQException(-1, 'not connected'))
+                continue
+
             try:
                 self._socket.send(data)
                 result.set(True)
@@ -99,7 +103,7 @@ class Nsqd(object):
                 raise errors.NSQSocketError(*error)
 
             if not packet:
-                raise errors.NSQSocketError(-1, "failed to read %d" % size)
+                raise errors.NSQSocketError(-1, 'failed to read %d' % size)
 
             self._buffer += packet
 
