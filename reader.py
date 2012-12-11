@@ -126,19 +126,22 @@ class Reader(object):
             self.logger.debug('Already connected.')
             return
 
-        self.conns.add(conn)
-
         conn.on_response.connect(self.handle_response)
         conn.on_error.connect(self.handle_error)
         conn.on_message.connect(self.handle_message)
         conn.on_finish.connect(self.handle_finish)
         conn.on_requeue.connect(self.handle_requeue)
 
-        conn.connect()
-        conn.subscribe(self.topic, self.channel)
-        conn.ready(self.connection_max_in_flight())
+        try:
+            conn.connect()
+            conn.subscribe(self.topic, self.channel)
+            conn.ready(self.connection_max_in_flight())
+        except NSQException:
+            self.logger.warn('Failed connecting to %s:%s' % (address, tcp_port))
+            return
 
         self.logger.info('Connected to %s:%s' % (address, tcp_port))
+        self.conns.add(conn)
         conn.worker = gevent.spawn(self._listen, conn)
 
     def _listen(self, conn):

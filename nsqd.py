@@ -40,6 +40,9 @@ class Nsqd(object):
         self.reset()
 
     def stats(self):
+        if self.http_port is None:
+            return None
+
         url  = 'http://%s:%s/stats?format=json' % (self.address, self.http_port)
         resp = requests.get(url)
 
