@@ -6,6 +6,9 @@ class NSQException(Exception):
 class NSQRequeueMessage(NSQException):
     pass
 
+class NSQNoConnections(NSQException):
+    pass
+
 class NSQSocketError(socket.error, NSQException):
     pass
 

@@ -8,7 +8,8 @@ from .nsqd    import Nsqd
 from .util    import assert_list
 
 from .errors import (
-    NSQSocketError,
+    NSQException,
+    NSQNoConnections,
     NSQRequeueMessage
 )
 
@@ -22,7 +23,8 @@ class Reader(object):
         async                  = False,
         max_tries              = 5,
         max_in_flight          = 1,
-        lookupd_poll_interval  = 120
+        lookupd_poll_interval  = 120,
+        logger                 = None
     ):
         self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
         self.lookupd            = Lookupd(lookupd_http_addresses)
@@ -34,6 +36,7 @@ class Reader(object):
         self.max_tries             = max_tries
         self.max_in_flight         = max_in_flight
         self.lookupd_poll_interval = lookupd_poll_interval
+        self.logger                = logger or logging.getLogger(__name__)
 
         self.on_response = blinker.Signal()
         self.on_error    = blinker.Signal()
@@ -53,13 +56,13 @@ class Reader(object):
         return max(1, self.max_in_flight / max(1, len(self.conns)))
 
     def query_nsqd(self):
-        print 'Querying nsqd...'
+        self.logger.debug('Querying nsqd...')
         for address in self.nsqd_tcp_addresses:
             address, port = address.split(':')
             self.connect_to_nsqd(address, int(port))
 
     def query_lookupd(self):
-        print 'Querying lookupd...'
+        self.logger.debug('Querying lookupd...')
         for producer in self.lookupd.iter_lookup(self.topic):
             self.connect_to_nsqd(
                 producer['address'],
@@ -98,17 +101,29 @@ class Reader(object):
         stats = self.stats
         return max((stats[c]['depth'], c) for c in self.conns if stats[c])[1]
 
-    def connect_to_nsqd(self, address, tcp_port, http_port):
+    def random_connection(self):
+        if not self.conns:
+            return None
+        return random.sample(self.conns, 1)[0]
+
+    def publish(self, topic, message):
+        conn = self.random_connection()
+        if conn is None:
+            raise NSQNoConnections()
+
+        conn.publish(topic, message)
+
+    def connect_to_nsqd(self, address, tcp_port, http_port=None):
         assert isinstance(address, (str, unicode))
         assert isinstance(tcp_port, int)
-        assert isinstance(http_port, int)
+        assert isinstance(http_port, int) or http_port is None
 
-        print 'Connecting to %s:%s...' % (address, tcp_port)
+        self.logger.debug('Connecting to %s:%s...' % (address, tcp_port))
         conn = Nsqd(address, tcp_port, http_port)
         self.stats[conn] = self.get_stats(conn)
 
         if conn in self.conns:
-            print 'Already connected.'
+            self.logger.debug('Already connected.')
             return
 
         self.conns.add(conn)
@@ -123,15 +138,14 @@ class Reader(object):
         conn.subscribe(self.topic, self.channel)
         conn.ready(self.connection_max_in_flight())
 
-        print 'Connection successfull!'
+        self.logger.info('Connected to %s:%s' % (address, tcp_port))
         conn.worker = gevent.spawn(self._listen, conn)
 
     def _listen(self, conn):
         try:
             conn.listen()
-
-        except NSQSocketError:
-            print 'Lost conn....'
+        except NSQException:
+            self.logger.info('Lost connection to %s:%s' % (conn.address, conn.tcp_port))
 
         self.conns.remove(conn)
 
