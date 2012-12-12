@@ -159,13 +159,7 @@ class Nsqd(object):
 
     def listen(self):
         while self._socket:
-            frame, data = self.read_response()
-
-            if frame != nsq.FRAME_TYPE_RESPONSE:
-                continue
-
-            if data == 'CLOSE_WAIT':
-                break
+            self.read_response()
 
     def subscribe(self, topic, channel, short_id=SHORTNAME, long_id=HOSTNAME):
         self.send(nsq.subscribe(topic, channel, short_id, long_id))
