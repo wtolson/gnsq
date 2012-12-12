@@ -198,7 +198,7 @@ class Nsqd(object):
 
     def __eq__(self, other):
         return (
-            isinstance(other, Connection)   and
+            isinstance(other, Nsqd)         and
             self.address  == other.address  and
             self.tcp_port == other.tcp_port
         )
