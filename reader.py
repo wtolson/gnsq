@@ -161,7 +161,7 @@ class Reader(object):
     def handle_message(self, conn, message):
         try:
             self.on_message.send(self, conn=conn, message=message)
-            if not async:
+            if not self.async:
                 self.finish(message)
             return
 
@@ -178,7 +178,7 @@ class Reader(object):
         message.requeue()
 
     def update_ready(self, conn):
-        max_in_flight = conn.connection_max_in_flight()
+        max_in_flight = self.connection_max_in_flight()
         if conn.ready_count < (0.25 * max_in_flight):
             conn.ready(max_in_flight)
 
