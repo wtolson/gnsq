@@ -183,11 +183,11 @@ class Reader(object):
             conn.ready(max_in_flight)
 
     def handle_finish(self, conn, message_id):
-        self.on_finish(self, conn=conn, message_id=message_id)
+        self.on_finish.send(self, conn=conn, message_id=message_id)
         self.update_ready(conn)
 
     def handle_requeue(self, conn, message_id, timeout):
-        self.on_requeue(self, conn=conn, message_id=message_id, timeout=timeout)
+        self.on_requeue.send(self, conn=conn, message_id=message_id, timeout=timeout)
         self.update_ready(conn)
 
     def close(self):
