@@ -77,6 +77,12 @@ class Reader(object):
             self.query_nsqd()
             self.query_lookupd()
 
+            stats = {}
+            for conn in self.conns:
+                stats[conn] = self.get_stats(conn)
+
+            self.stats = stats
+
     def get_stats(self, conn):
         stats = conn.stats()
         if stats is None:
@@ -98,8 +104,10 @@ class Reader(object):
         if len(conn) == 0:
             return None
 
-        stats = self.stats
-        return max((stats[c]['depth'], c) for c in self.conns if stats[c])[1]
+        stats  = self.stats
+        depths = [(stats.get(c, {}).get('depth'), c) for c in self.conns]
+
+        return max(depths)[1]
 
     def random_connection(self):
         if not self.conns:
@@ -120,7 +128,6 @@ class Reader(object):
 
         self.logger.debug('Connecting to %s:%s...' % (address, tcp_port))
         conn = Nsqd(address, tcp_port, http_port)
-        self.stats[conn] = self.get_stats(conn)
 
         if conn in self.conns:
             self.logger.debug('Already connected.')
