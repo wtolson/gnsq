@@ -76,12 +76,14 @@ class Reader(object):
             gevent.sleep(self.lookupd_poll_interval)
             self.query_nsqd()
             self.query_lookupd()
+            self.update_stats()
 
-            stats = {}
-            for conn in self.conns:
-                stats[conn] = self.get_stats(conn)
+    def update_stats(self):
+        stats = {}
+        for conn in self.conns:
+            stats[conn] = self.get_stats(conn)
 
-            self.stats = stats
+        self.stats = stats
 
     def get_stats(self, conn):
         stats = conn.stats()
