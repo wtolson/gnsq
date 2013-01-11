@@ -28,7 +28,7 @@ class Nsqd(object):
         self.on_finish   = blinker.Signal()
         self.on_requeue  = blinker.Signal()
 
-        self._send_worker = gevent.spawn(self._send)
+        self._send_worker = None
         self._send_queue  = Queue()
 
         self._frame_handlers = {
@@ -63,7 +63,13 @@ class Nsqd(object):
         except socket.error as error:
             raise errors.NSQSocketError(*error)
 
+        self._send_worker = gevent.spawn(self._send)
         self.send(nsq.MAGIC_V2)
+
+    def kill(self):
+        if self._send_worker:
+            worker, self._send_worker = self._send_worker, None
+            worker.kill()
 
     def send(self, data, async=False):
         result = AsyncResult()

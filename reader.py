@@ -160,6 +160,7 @@ class Reader(object):
             self.logger.info('Lost connection to %s:%s' % (conn.address, conn.tcp_port))
 
         self.conns.remove(conn)
+        conn.kill()
 
     def handle_response(self, conn, response):
         self.on_response.send(self, conn=conn, response=response)
