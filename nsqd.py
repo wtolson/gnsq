@@ -16,7 +16,7 @@ HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
 class Nsqd(object):
-    def __init__(self, address, tcp_port=None, http_port=None, timeout=120):
+    def __init__(self, address, tcp_port=None, http_port=None, timeout=1.0):
         self.address   = address
         self.tcp_port  = tcp_port
         self.http_port = http_port
@@ -167,8 +167,14 @@ class Nsqd(object):
         while self._socket:
             self.read_response()
 
-    def subscribe(self, topic, channel, short_id=SHORTNAME, long_id=HOSTNAME):
-        self.send(nsq.subscribe(topic, channel, short_id, long_id))
+    def identify(short_id=SHORTNAME, long_id=HOSTNAME):
+        self.send(nsq.identify({
+            'short_id': short_id,
+            'long_id':  long_id
+        }))
+
+    def subscribe(self, topic, channel):
+        self.send(nsq.subscribe(topic, channel))
 
     def publish(self, topic, data):
         self.send(nsq.publish(topic, data))
@@ -185,10 +191,13 @@ class Nsqd(object):
         self.in_flight -= 1
         self.on_finish.send(self, message_id=message_id)
 
-    def requeue(self, message_id, timeout):
+    def requeue(self, message_id, timeout=0):
         self.send(nsq.requeue(message_id, timeout))
         self.in_flight -= 1
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
+
+    def touch(self, message_id):
+        self.send(nsq.touch(message_id))
 
     def close(self):
         self.send(nsq.close())

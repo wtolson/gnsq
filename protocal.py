@@ -1,5 +1,6 @@
 import re
 import struct
+import json
 
 __all__ = [
     'MAGIC_V2',
@@ -29,22 +30,18 @@ FRAME_TYPE_MESSAGE  = 2
 #
 # Helpers
 #
-TOPIC_NAME_RE   = re.compile('^[\.a-zA-Z0-9_-]+$')
-CHANNEL_NAME_RE = re.compile('^[\.a-zA-Z0-9_-]+(#ephemeral)?$')
+TOPIC_NAME_RE   = re.compile(r'^[\.a-zA-Z0-9_-]+$')
+CHANNEL_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+(#ephemeral)?$')
 
-def is_valid_topic_name(name):
-    length = len(name)
-    if length > 32 or length < 1:
+def valid_topic_name(topic):
+    if not 0 < len(topic) < 33:
         return False
+    return bool(TOPIC_NAME_RE.match(topic))
 
-    return bool(TOPIC_NAME_RE.match(name))
-
-def is_valid_channel_name(name):
-    length = len(name)
-    if length > 32 or length < 1:
+def valid_channel_name(channel):
+    if not 0 < len(channel) < 33:
         return False
-
-    return bool(CHANNEL_NAME_RE.match(name))
+    return bool(CHANNEL_NAME_RE.match(channel))
 
 #
 # Responses
@@ -66,38 +63,48 @@ def unpack_message(data):
 #
 # Commands
 #
-def _command(*params):
-    assert len(params) > 0
-    return ' '.join(params) + NEWLINE
+def _packbody(body):
+    if not body is None:
+        return ''
+    return struct.pack('>l', len(body)) + body
 
-def _packmessage(data):
-    return struct.pack('>l', len(data)) + data
+def _command(cmd, body, *params):
+    return ''.join((' '.join((cmd,) + params), NEWLINE, _packbody(body))
 
-def subscribe(topic_name, channel_name, short_id, long_id):
-    assert is_valid_topic_name(topic_name)
-    assert is_valid_channel_name(channel_name)
-    return _command('SUB', topic_name, channel_name, short_id, long_id)
+def identify(data):
+    return _command('IDENTIFY', json.dumps(data))
+
+def subscribe(topic_name, channel_name):
+    assert valid_topic_name(topic_name)
+    assert valid_channel_name(channel_name)
+    return _command('SUB', None, topic_name, channel_name)
 
 def publish(topic_name, data):
-    assert is_valid_topic_name(topic_name)
-    return _command('PUB', topic_name) + _packmessage(data)
+    assert valid_topic_name(topic_name)
+    return _command('PUB', data, topic_name)
 
 def multipublish(topic_name, messages):
-    assert is_valid_topic_name(topic_name)
-    messages = ''.join([_packmessage(m) for m in messages])
-    return _command('MPUB', topic_name) + _packmessage(''.join(messages))
+    assert valid_topic_name(topic_name)
+    data = ''.join(_packbody(m) for m in messages)
+    return _command('MPUB', data, topic_name)
 
 def ready(count):
-    return _command('RDY', str(count))
+    assert isinstance(count, int), "ready count must be an integer"
+    assert count >= 0, "ready count cannot be negative"
+    return _command('RDY', None, str(count))
 
 def finish(message_id):
-    return _command('FIN', message_id)
+    return _command('FIN', None, message_id)
 
-def requeue(message_id, timeout):
-    return _command('REQ', message_id, str(timeout))
+def requeue(message_id, timeout=0):
+    assert isinstance(timeout, int), "requeue timeout must be an integer"
+    return _command('REQ', None, message_id, str(timeout))
+
+def touch(message_id):
+    return _command('TOUCH', None, message_id)
 
 def close():
-    return _command('CLS')
+    return _command('CLS', None)
 
 def nop():
-    return _command('NOP')
+    return _command('NOP', None)

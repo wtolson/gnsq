@@ -143,6 +143,7 @@ class Reader(object):
 
         try:
             conn.connect()
+            conn.identify()
             conn.subscribe(self.topic, self.channel)
             conn.ready(self.connection_max_in_flight())
         except NSQException:
