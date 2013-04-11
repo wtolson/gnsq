@@ -167,7 +167,7 @@ class Nsqd(object):
         while self._socket:
             self.read_response()
 
-    def identify(short_id=SHORTNAME, long_id=HOSTNAME):
+    def identify(self, short_id=SHORTNAME, long_id=HOSTNAME):
         self.send(nsq.identify({
             'short_id': short_id,
             'long_id':  long_id
@@ -179,7 +179,7 @@ class Nsqd(object):
     def publish(self, topic, data):
         self.send(nsq.publish(topic, data))
 
-    def multipublish(topic, messages):
+    def multipublish(self, topic, messages):
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
