@@ -64,7 +64,7 @@ def unpack_message(data):
 # Commands
 #
 def _packbody(body):
-    if not body is None:
+    if body is None:
         return ''
     return struct.pack('>l', len(body)) + body
 
