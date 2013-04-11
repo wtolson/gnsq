@@ -69,7 +69,7 @@ def _packbody(body):
     return struct.pack('>l', len(body)) + body
 
 def _command(cmd, body, *params):
-    return ''.join((' '.join((cmd,) + params), NEWLINE, _packbody(body))
+    return ''.join((' '.join((cmd,) + params), NEWLINE, _packbody(body)))
 
 def identify(data):
     return _command('IDENTIFY', json.dumps(data))
