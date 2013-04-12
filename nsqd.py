@@ -16,7 +16,7 @@ HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
 class Nsqd(object):
-    def __init__(self, address, tcp_port=None, http_port=None, timeout=1.0):
+    def __init__(self, address, tcp_port=None, http_port=None, timeout=60.0):
         self.address   = address
         self.tcp_port  = tcp_port
         self.http_port = http_port
