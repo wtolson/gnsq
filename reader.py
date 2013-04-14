@@ -169,12 +169,15 @@ class Reader(object):
         conn.kill()
 
     def handle_response(self, conn, response):
+        self.logger.debug('[%r] response: %s' % (conn, response))
         self.on_response.send(self, conn=conn, response=response)
 
     def handle_error(self, conn, error):
+        self.logger.debug('[%r] error: %s' % (conn, error))
         self.on_error.send(self, conn=conn, error=error)
 
     def handle_message(self, conn, message):
+        self.logger.debug('[%r] got message: %s' % (conn, message.id))
         try:
             self.on_message.send(self, conn=conn, message=message)
             if not self.async:
@@ -199,10 +202,12 @@ class Reader(object):
             conn.ready(max_in_flight)
 
     def handle_finish(self, conn, message_id):
+        self.logger.debug('[%r] finished message: %s' % (conn, message_id))
         self.on_finish.send(self, conn=conn, message_id=message_id)
         self.update_ready(conn)
 
     def handle_requeue(self, conn, message_id, timeout):
+        self.logger.debug('[%r] requeued message: %s (%s)' % (conn, message_id, timeout))
         self.on_requeue.send(self, conn=conn, message_id=message_id, timeout=timeout)
         self.update_ready(conn)
 
