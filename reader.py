@@ -86,7 +86,12 @@ class Reader(object):
         self.stats = stats
 
     def get_stats(self, conn):
-        stats = conn.stats()
+        try:
+            stats = conn.stats()
+        except Exception as error:
+            self.logger.warn('Failed getting stats from %s:%s (%s)' % (conn.address, conn.http_port, error))
+            return None
+
         if stats is None:
             return None
 

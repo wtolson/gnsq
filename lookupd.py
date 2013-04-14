@@ -1,9 +1,11 @@
+import logging
 import requests
 from .util import assert_list
 
 class Lookupd(object):
-    def __init__(self, addresses):
+    def __init__(self, addresses, logger=None):
         self.addresses = assert_list(addresses)
+        self.logger = logger or logging.getLogger(__name__)
 
     def lookup(self, topic):
         producers = []
@@ -19,7 +21,11 @@ class Lookupd(object):
 
     def _lookup(self, address, topic):
         url  = '%s/lookup' % address
-        resp = requests.get(url, params={'topic': topic})
+
+        try:
+            resp = requests.get(url, params={'topic': topic})
+        except Exception as error:
+            self.logger.warn('Failed to lookup %s on %s (%s)' % (topic, address, error))
 
         if resp.status_code != 200:
             return []
