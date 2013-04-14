@@ -3,9 +3,9 @@ import requests
 from .util import assert_list
 
 class Lookupd(object):
-    def __init__(self, addresses, logger=None):
+    def __init__(self, addresses):
         self.addresses = assert_list(addresses)
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
     def lookup(self, topic):
         producers = []

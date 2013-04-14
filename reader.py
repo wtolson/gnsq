@@ -23,8 +23,7 @@ class Reader(object):
         async                  = False,
         max_tries              = 5,
         max_in_flight          = 1,
-        lookupd_poll_interval  = 120,
-        logger                 = None
+        lookupd_poll_interval  = 120
     ):
         self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
         self.lookupd            = Lookupd(lookupd_http_addresses)
@@ -36,7 +35,7 @@ class Reader(object):
         self.max_tries             = max_tries
         self.max_in_flight         = max_in_flight
         self.lookupd_poll_interval = lookupd_poll_interval
-        self.logger                = logger or logging.getLogger(__name__)
+        self.logger                = logging.getLogger(__name__)
 
         self.on_response = blinker.Signal()
         self.on_error    = blinker.Signal()
@@ -50,6 +49,7 @@ class Reader(object):
     def start(self):
         self.query_nsqd()
         self.query_lookupd()
+        self.update_stats()
         self._poll()
 
     def connection_max_in_flight(self):
@@ -185,10 +185,10 @@ class Reader(object):
             pass
 
         except Exception:
-            logging.exception('[%s] caught exception while handling message' % conn)
+            self.logger.exception('[%s] caught exception while handling message' % conn)
 
         if message.attempts > self.max_tries:
-            logging.warning("giving up on message '%s' after max tries %d", message.id, self.max_tries)
+            self.logger.warning("giving up on message '%s' after max tries %d", message.id, self.max_tries)
             return message.finish()
 
         message.requeue()
