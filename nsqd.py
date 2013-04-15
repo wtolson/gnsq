@@ -6,6 +6,7 @@ import gevent
 from gevent import socket
 from gevent.queue import Queue
 from gevent.event import AsyncResult
+from Queue import Empty
 
 from . import protocal as nsq
 from . import errors
@@ -67,12 +68,28 @@ class Nsqd(object):
         self._send_worker = gevent.spawn(self._send)
         self.send(nsq.MAGIC_V2)
 
+    def _empty_send_queue(self):
+        while 1:
+            try:
+                data, result = self._send_queue.get_nowait()
+            except Empty:
+                return
+
+            result.set_exception(errors.NSQException(-1, 'not connected'))
+
     def kill(self):
+        self._socket = None
+
         if self._send_worker:
             worker, self._send_worker = self._send_worker, None
             worker.kill()
 
+        self._empty_send_queue()
+
     def send(self, data, async=False):
+        if self._socket is None:
+            raise errors.NSQException(-1, 'not connected')
+
         result = AsyncResult()
         self._send_queue.put((data, result))
 
@@ -86,7 +103,7 @@ class Nsqd(object):
             data, result = self._send_queue.get()
             if self._socket is None:
                 result.set_exception(errors.NSQException(-1, 'not connected'))
-                continue
+                break
 
             try:
                 self._socket.send(data)
@@ -98,6 +115,8 @@ class Nsqd(object):
             except Exception as error:
                 result.set_exception(error)
 
+        self._empty_send_queue()
+
     def reset(self):
         self.ready_count       = 0
         self.in_flight         = 0
@@ -107,6 +126,9 @@ class Nsqd(object):
 
     def _readn(self, size):
         while len(self._buffer) < size:
+            if self._socket is None:
+                raise errors.NSQException(-1, 'not connected')
+
             try:
                 packet = self._socket.recv(4096)
             except socket.error as error:
