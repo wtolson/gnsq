@@ -56,13 +56,13 @@ class Reader(object):
         return max(1, self.max_in_flight / max(1, len(self.conns)))
 
     def query_nsqd(self):
-        self.logger.debug('Querying nsqd...')
+        self.logger.debug('querying nsqd...')
         for address in self.nsqd_tcp_addresses:
             address, port = address.split(':')
             self.connect_to_nsqd(address, int(port))
 
     def query_lookupd(self):
-        self.logger.debug('Querying lookupd...')
+        self.logger.debug('querying lookupd...')
         for producer in self.lookupd.iter_lookup(self.topic):
             self.connect_to_nsqd(
                 producer['address'],
@@ -89,7 +89,7 @@ class Reader(object):
         try:
             stats = conn.stats()
         except Exception as error:
-            self.logger.warn('Failed getting stats from %s:%s (%s)' % (conn.address, conn.http_port, error))
+            self.logger.warn('[%s] stats lookup failed (%r)' % (conn, error))
             return None
 
         if stats is None:
@@ -133,12 +133,12 @@ class Reader(object):
         assert isinstance(tcp_port, int)
         assert isinstance(http_port, int) or http_port is None
 
-        self.logger.debug('Connecting to %s:%s...' % (address, tcp_port))
         conn = Nsqd(address, tcp_port, http_port)
-
         if conn in self.conns:
-            self.logger.debug('Already connected.')
+            self.logger.debug('[%s] already connected' % conn)
             return
+
+        self.logger.debug('[%s] connecting...' % conn)
 
         conn.on_response.connect(self.handle_response)
         conn.on_error.connect(self.handle_error)
@@ -151,19 +151,19 @@ class Reader(object):
             conn.identify()
             conn.subscribe(self.topic, self.channel)
             conn.ready(self.connection_max_in_flight())
-        except NSQException:
-            self.logger.warn('Failed connecting to %s:%s' % (address, tcp_port))
+        except NSQException as error:
+            self.logger.debug('[%s] connection failed (%r)' % (conn, error))
             return
 
-        self.logger.info('Connected to %s:%s' % (address, tcp_port))
+        self.logger.info('[%s] connection successful' % conn)
         self.conns.add(conn)
         conn.worker = gevent.spawn(self._listen, conn)
 
     def _listen(self, conn):
         try:
             conn.listen()
-        except NSQException:
-            self.logger.info('Lost connection to %s:%s' % (conn.address, conn.tcp_port))
+        except NSQException as error:
+            self.logger.warning('[%s] connection lost (%r)' % (conn, error))
 
         self.conns.remove(conn)
         conn.kill()
