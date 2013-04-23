@@ -178,6 +178,11 @@ class Reader(object):
 
     def handle_message(self, conn, message):
         self.logger.debug('[%s] got message: %s' % (conn, message.id))
+
+        if self.max_tries and message.attempts > self.max_tries:
+            self.logger.warning("giving up on message '%s' after max tries %d", message.id, self.max_tries)
+            return message.finish()
+
         try:
             self.on_message.send(self, conn=conn, message=message)
             if not self.async:
@@ -189,10 +194,6 @@ class Reader(object):
 
         except Exception:
             self.logger.exception('[%s] caught exception while handling message' % conn)
-
-        if message.attempts > self.max_tries:
-            self.logger.warning("giving up on message '%s' after max tries %d", message.id, self.max_tries)
-            return message.finish()
 
         message.requeue()
 
