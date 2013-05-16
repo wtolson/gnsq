@@ -15,45 +15,48 @@ class NSQSocketError(socket.error, NSQException):
 class NSQFrameError(NSQException):
     pass
 
-class NSQInvalid(NSQException):
+class NSQErrorCode(NSQException):
+    pass
+
+class NSQInvalid(NSQErrorCode):
     """E_INVALID"""
     pass
 
-class NSQBadBody(NSQException):
+class NSQBadBody(NSQErrorCode):
     """E_BAD_BODY"""
     pass
 
-class NSQBadTopic(NSQException):
+class NSQBadTopic(NSQErrorCode):
     """E_BAD_TOPIC"""
     pass
 
-class NSQBadChannel(NSQException):
+class NSQBadChannel(NSQErrorCode):
     """E_BAD_CHANNEL"""
     pass
 
-class NSQBadMessage(NSQException):
+class NSQBadMessage(NSQErrorCode):
     """E_BAD_MESSAGE"""
     pass
 
-class NSQPutFailed(NSQException):
+class NSQPutFailed(NSQErrorCode):
     """E_PUT_FAILED"""
     pass
 
-class NSQPubFailed(NSQException):
+class NSQPubFailed(NSQErrorCode):
     """E_PUB_FAILED"""
 
-class NSQMPubFailed(NSQException):
+class NSQMPubFailed(NSQErrorCode):
     """E_MPUB_FAILED"""
 
-class NSQFinishFailed(NSQException):
+class NSQFinishFailed(NSQErrorCode):
     """E_FIN_FAILED"""
     pass
 
-class NSQRequeueFailed(NSQException):
+class NSQRequeueFailed(NSQErrorCode):
     """E_REQ_FAILED"""
     pass
 
-class NSQTouchFailed(NSQException):
+class NSQTouchFailed(NSQErrorCode):
     """E_TOUCH_FAILED"""
     pass
 
@@ -74,5 +77,4 @@ ERROR_CODES = {
 }
 
 def make_error(error_code):
-    assert error_code in ERROR_CODES
-    return ERROR_CODES[error_code](error_code)
+    return ERROR_CODES.get(error_code, NSQErrorCode)(error_code)
