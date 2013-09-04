@@ -17,7 +17,12 @@ HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
 class Nsqd(object):
-    def __init__(self, address, tcp_port=None, http_port=None, timeout=60.0):
+    def __init__(self,
+        address   = '127.0.0.1',
+        tcp_port  = 4150,
+        http_port = 4151,
+        timeout   = 60.0
+    ):
         self.address   = address
         self.tcp_port  = tcp_port
         self.http_port = http_port
@@ -29,6 +34,7 @@ class Nsqd(object):
         self.on_finish   = blinker.Signal()
         self.on_requeue  = blinker.Signal()
 
+        self._session     = None
         self._send_worker = None
         self._send_queue  = Queue()
 
@@ -40,31 +46,24 @@ class Nsqd(object):
 
         self.reset()
 
-    def stats(self):
-        if self.http_port is None:
-            return None
-
-        url  = 'http://%s:%s/stats?format=json' % (self.address, self.http_port)
-        resp = requests.get(url)
-
-        if resp.status_code != 200:
-            return None
-
-        return resp.json['data']
+    @property
+    def is_connected(self):
+        return self._socket is not None
 
     def connect(self):
-        if self._socket is not None:
+        if self.is_connected:
             raise NSQException('already connected')
 
         self.reset()
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(self.timeout)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(self.timeout)
 
         try:
-            self._socket.connect((self.address, self.tcp_port))
+            s.connect((self.address, self.tcp_port))
         except socket.error as error:
             raise errors.NSQSocketError(*error)
 
+        self._socket = s
         self._send_worker = gevent.spawn(self._send)
         self.send(nsq.MAGIC_V2)
 
@@ -87,7 +86,7 @@ class Nsqd(object):
         self._empty_send_queue()
 
     def send(self, data, async=False):
-        if self._socket is None:
+        if not self.is_connected:
             raise errors.NSQException(-1, 'not connected')
 
         result = AsyncResult()
@@ -101,7 +100,7 @@ class Nsqd(object):
     def _send(self):
         while 1:
             data, result = self._send_queue.get()
-            if self._socket is None:
+            if not self.is_connected:
                 result.set_exception(errors.NSQException(-1, 'not connected'))
                 break
 
@@ -126,7 +125,7 @@ class Nsqd(object):
 
     def _readn(self, size):
         while len(self._buffer) < size:
-            if self._socket is None:
+            if not self.is_connected:
                 raise errors.NSQException(-1, 'not connected')
 
             try:
@@ -187,22 +186,27 @@ class Nsqd(object):
         return message
 
     def listen(self):
-        while self._socket:
+        while self.is_connected:
             self.read_response()
 
-    def identify(self, short_id=SHORTNAME, long_id=HOSTNAME):
+    def identify(self,
+        short_id           = SHORTNAME,
+        long_id            = HOSTNAME,
+        heartbeat_interval = None
+    ):
         self.send(nsq.identify({
-            'short_id': short_id,
-            'long_id':  long_id
+            'short_id':           short_id,
+            'long_id':            long_id,
+            'heartbeat_interval': heartbeat_interval
         }))
 
     def subscribe(self, topic, channel):
         self.send(nsq.subscribe(topic, channel))
 
-    def publish(self, topic, data):
+    def publish_tcp(self, topic, data):
         self.send(nsq.publish(topic, data))
 
-    def multipublish(self, topic, messages):
+    def multipublish_tcp(self, topic, messages):
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
@@ -227,6 +231,151 @@ class Nsqd(object):
 
     def nop(self):
         self.send(nsq.nop())
+
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = requests.Session()
+        return self._session
+
+    @property
+    def base_url(self):
+        return 'http://%s:%s/' % (self.address, self.http_port)
+
+    def url(self, *parts):
+        return self.base_url + '/'.join(parts)
+
+    def _check_api(self, *args, **kwargs):
+        if not self.http_port:
+            raise errors.NSQException(-1, 'no http port')
+
+        resp = self.session.post(*args, **kwargs)
+        if resp.status_code != 200:
+            raise errors.NSQException(resp.status_code, 'api error')
+
+        return resp.text
+
+    def _json_api(self, *args, **kwargs):
+        if not self.http_port:
+            raise errors.NSQException(-1, 'no http port')
+
+        resp = self.session.post(*args, **kwargs)
+        if resp.status_code != 200:
+            try:
+                msg = resp.json()['status_txt']
+            except:
+                msg = 'api error'
+
+            raise errors.NSQException(resp.status_code, msg)
+
+        return resp.json()['data']
+
+
+    def publish_http(self, topic, data):
+        assert nsq.valid_topic_name(topic)
+        return self._check_api(
+            self.url('put'),
+            params = {'topic': topic},
+            data   = data
+        )
+
+    def multipublish_http(self, topic, messages):
+        assert nsq.valid_topic_name(topic)
+
+        for message in messages:
+            if '\n' not in message:
+                continue
+
+            err = 'newlines are not allowed in http multipublish'
+            raise errors.NSQException(-1, err)
+
+        return self._check_api(
+            self.url('mput'),
+            params = {'topic': topic},
+            data   = '\n'.join(messages)
+        )
+
+    def create_topic(self, topic):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('create_topic'),
+            params = {'topic': topic}
+        )
+
+    def delete_topic(self, topic):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('delete_topic'),
+            params = {'topic': topic}
+        )
+
+    def create_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(topic)
+        return self._json_api(
+            self.url('create_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
+
+    def delete_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(topic)
+        return self._json_api(
+            self.url('delete_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
+
+    def empty_topic(self, topic):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('empty_topic'),
+            params = {'topic': topic}
+        )
+
+    def empty_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(topic)
+        return self._json_api(
+            self.url('empty_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
+
+    def pause_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(topic)
+        return self._json_api(
+            self.url('pause_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
+
+    def unpause_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(topic)
+        return self._json_api(
+            self.url('unpause_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
+
+    def stats(self):
+        return self._json_api(self.url('stats'), params={'format': 'json'})
+
+    def ping(self):
+        return self._check_api(self.url('ping'))
+
+    def info(self):
+        return self._json_api(self.url('info'))
+
+    def publish(self, topic, data):
+        if self.is_connected:
+            return self.publish_tcp(topic, data)
+        else:
+            return self.publish_http(topic, data)
+
+    def multipublish(self, topic, messages):
+        if self.is_connected:
+            return self.multipublish_tcp(topic, messages)
+        else:
+            return self.multipublish_http(topic, messages)
 
     def __str__(self):
         return self.address + ':' + str(self.tcp_port)
