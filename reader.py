@@ -133,7 +133,7 @@ class Reader(object):
     def random_connection(self):
         if not self.conns:
             return None
-        return random.sample(self.conns, 1)[0]
+        return random.choice(self.conns)
 
     def publish(self, topic, message):
         conn = self.random_connection()
@@ -194,7 +194,8 @@ class Reader(object):
         self.logger.debug('[%s] got message: %s' % (conn, message.id))
 
         if self.max_tries and message.attempts > self.max_tries:
-            self.logger.warning("giving up on message '%s' after max tries %d", message.id, self.max_tries)
+            template = "giving up on message '%s' after max tries %d"
+            self.logger.warning(template, message.id, self.max_tries)
             return message.finish()
 
         try:
@@ -207,7 +208,8 @@ class Reader(object):
             pass
 
         except Exception:
-            self.logger.exception('[%s] caught exception while handling message' % conn)
+            template = '[%s] caught exception while handling message'
+            self.logger.exception(template % conn)
 
         message.requeue()
 
@@ -222,8 +224,14 @@ class Reader(object):
         self.update_ready(conn)
 
     def handle_requeue(self, conn, message_id, timeout):
-        self.logger.debug('[%s] requeued message: %s (%s)' % (conn, message_id, timeout))
-        self.on_requeue.send(self, conn=conn, message_id=message_id, timeout=timeout)
+        template = '[%s] requeued message: %s (%s)'
+        self.logger.debug(template % (conn, message_id, timeout))
+        self.on_requeue.send(
+            self,
+            conn       = conn,
+            message_id = message_id,
+            timeout    = timeout
+        )
         self.update_ready(conn)
 
     def close(self):
