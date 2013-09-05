@@ -1,5 +1,4 @@
 import re
-import requests
 import blinker
 
 import gevent
@@ -12,11 +11,12 @@ from . import protocal as nsq
 from . import errors
 
 from .message import Message
+from .httpclient import HTTPClient
 
 HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
-class Nsqd(object):
+class Nsqd(HTTPClient):
     def __init__(self,
         address   = '127.0.0.1',
         tcp_port  = 4150,
@@ -34,7 +34,6 @@ class Nsqd(object):
         self.on_finish   = blinker.Signal()
         self.on_requeue  = blinker.Signal()
 
-        self._session     = None
         self._send_worker = None
         self._send_queue  = Queue()
 
@@ -233,43 +232,13 @@ class Nsqd(object):
         self.send(nsq.nop())
 
     @property
-    def session(self):
-        if self._session is None:
-            self._session = requests.Session()
-        return self._session
-
-    @property
     def base_url(self):
         return 'http://%s:%s/' % (self.address, self.http_port)
 
-    def url(self, *parts):
-        return self.base_url + '/'.join(parts)
-
-    def _check_api(self, *args, **kwargs):
-        if not self.http_port:
-            raise errors.NSQException(-1, 'no http port')
-
-        resp = self.session.post(*args, **kwargs)
-        if resp.status_code != 200:
-            raise errors.NSQException(resp.status_code, 'api error')
-
-        return resp.text
-
-    def _json_api(self, *args, **kwargs):
-        if not self.http_port:
-            raise errors.NSQException(-1, 'no http port')
-
-        resp = self.session.post(*args, **kwargs)
-        if resp.status_code != 200:
-            try:
-                msg = resp.json()['status_txt']
-            except:
-                msg = 'api error'
-
-            raise errors.NSQException(resp.status_code, msg)
-
-        return resp.json()['data']
-
+    def _check_connection(self):
+        if self.http_port:
+            return
+        raise errors.NSQException(-1, 'no http port')
 
     def publish_http(self, topic, data):
         assert nsq.valid_topic_name(topic)
@@ -311,7 +280,7 @@ class Nsqd(object):
 
     def create_channel(self, topic, channel):
         assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(topic)
+        assert nsq.valid_channel_name(channel)
         return self._json_api(
             self.url('create_channel'),
             params = {'topic': topic, 'channel': channel}
@@ -319,7 +288,7 @@ class Nsqd(object):
 
     def delete_channel(self, topic, channel):
         assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(topic)
+        assert nsq.valid_channel_name(channel)
         return self._json_api(
             self.url('delete_channel'),
             params = {'topic': topic, 'channel': channel}
@@ -334,7 +303,7 @@ class Nsqd(object):
 
     def empty_channel(self, topic, channel):
         assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(topic)
+        assert nsq.valid_channel_name(channel)
         return self._json_api(
             self.url('empty_channel'),
             params = {'topic': topic, 'channel': channel}
@@ -342,7 +311,7 @@ class Nsqd(object):
 
     def pause_channel(self, topic, channel):
         assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(topic)
+        assert nsq.valid_channel_name(channel)
         return self._json_api(
             self.url('pause_channel'),
             params = {'topic': topic, 'channel': channel}
@@ -350,7 +319,7 @@ class Nsqd(object):
 
     def unpause_channel(self, topic, channel):
         assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(topic)
+        assert nsq.valid_channel_name(channel)
         return self._json_api(
             self.url('unpause_channel'),
             params = {'topic': topic, 'channel': channel}

@@ -25,8 +25,9 @@ class Reader(object):
         max_in_flight          = 1,
         lookupd_poll_interval  = 120
     ):
+        lookupd_http_addresses  = assert_list(lookupd_http_addresses)
+        self.lookupds           = [Lookupd(a) for a in lookupd_http_addresses]
         self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
-        self.lookupd            = Lookupd(lookupd_http_addresses)
         assert self.nsqd_tcp_addresses or self.lookupd.addresses
 
         self.topic                 = topic
@@ -61,14 +62,27 @@ class Reader(object):
             address, port = address.split(':')
             self.connect_to_nsqd(address, int(port))
 
-    def query_lookupd(self):
-        self.logger.debug('querying lookupd...')
-        for producer in self.lookupd.iter_lookup(self.topic):
+    def _query_lookupd(self, lookupd):
+        try:
+            producers = lookupd.lookup(self.topic)
+
+        except Exception as error:
+            template = 'Failed to lookup %s on %s (%s)'
+            data = (self.topic, lookupd.address, error)
+            self.logger.warn(template % data)
+            return
+
+        for producer in producers:
             self.connect_to_nsqd(
                 producer['address'],
                 producer['tcp_port'],
                 producer['http_port']
             )
+
+    def query_lookupd(self):
+        self.logger.debug('querying lookupd...')
+        for lookupd in self.lookupds:
+            self._query_lookupd(lookupd)
 
     def _poll(self):
         gevent.sleep(random.random() * self.lookupd_poll_interval * 0.1)

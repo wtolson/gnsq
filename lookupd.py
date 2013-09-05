@@ -1,34 +1,57 @@
-import logging
-import requests
-from .util import assert_list
+from .httpclient import HTTPClient
+from . import protocal as nsq
 
-class Lookupd(object):
-    def __init__(self, addresses):
-        self.addresses = assert_list(addresses)
-        self.logger = logging.getLogger(__name__)
+class Lookupd(HTTPClient):
+    def __init__(self, address='http://localhost:4161/'):
+        if not address.endswith('/'):
+            address += '/'
+
+        self.address = self.base_url = address
 
     def lookup(self, topic):
-        producers = []
-        for address in self.addresses:
-            producers.extend(self._lookup(address, topic))
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('lookup'),
+            params = {'topic': topic}
+        )
 
-        return producers
+    def topics(self):
+        return self._json_api(self.url('topics'))
 
-    def iter_lookup(self, topic):
-        for address in self.addresses:
-            for producer in self._lookup(address, topic):
-                yield producer
+    def channels(self, topic):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('channels'),
+            params = {'topic': topic}
+        )
 
-    def _lookup(self, address, topic):
-        url  = '%s/lookup' % address
+    def nodes(self):
+        return self._json_api(self.url('nodes'))
 
-        try:
-            resp = requests.get(url, params={'topic': topic})
-        except Exception as error:
-            self.logger.warn('Failed to lookup %s on %s (%s)' % (topic, address, error))
+    def delete_topic(self, topic):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('delete_topic'),
+            params = {'topic': topic}
+        )
 
-        if resp.status_code != 200:
-            return []
+    def delete_channel(self, topic, channel):
+        assert nsq.valid_topic_name(topic)
+        assert nsq.valid_channel_name(channel)
+        return self._json_api(
+            self.url('delete_channel'),
+            params = {'topic': topic, 'channel': channel}
+        )
 
-        print resp.json['data']
-        return resp.json['data']['producers']
+    def tombstone_topic_producer(self, topic, node):
+        assert nsq.valid_topic_name(topic)
+        return self._json_api(
+            self.url('tombstone_topic_producer'),
+            params = {'topic': topic, 'node': node}
+        )
+
+    def ping(self):
+        return self._check_api(self.url('ping'))
+
+    def info(self):
+        return self._json_api(self.url('info'))
