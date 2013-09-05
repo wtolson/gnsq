@@ -43,6 +43,12 @@ def valid_channel_name(channel):
         return False
     return bool(CHANNEL_NAME_RE.match(channel))
 
+def assert_valid_topic_name(topic):
+    assert valid_topic_name(topic)
+
+def assert_valid_channel_name(channel):
+    assert valid_channel_name(channel)
+
 #
 # Responses
 #
@@ -75,16 +81,16 @@ def identify(data):
     return _command('IDENTIFY', json.dumps(data))
 
 def subscribe(topic_name, channel_name):
-    assert valid_topic_name(topic_name)
-    assert valid_channel_name(channel_name)
+    assert_valid_topic_name(topic_name)
+    assert_valid_channel_name(channel_name)
     return _command('SUB', None, topic_name, channel_name)
 
 def publish(topic_name, data):
-    assert valid_topic_name(topic_name)
+    assert_valid_topic_name(topic_name)
     return _command('PUB', data, topic_name)
 
 def multipublish(topic_name, messages):
-    assert valid_topic_name(topic_name)
+    assert_valid_topic_name(topic_name)
     data = ''.join(_packbody(m) for m in messages)
     return _command('MPUB', data, topic_name)
 

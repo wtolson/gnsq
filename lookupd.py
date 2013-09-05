@@ -9,7 +9,7 @@ class Lookupd(HTTPClient):
         self.address = self.base_url = address
 
     def lookup(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('lookup'),
             params = {'topic': topic}
@@ -19,7 +19,7 @@ class Lookupd(HTTPClient):
         return self._json_api(self.url('topics'))
 
     def channels(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('channels'),
             params = {'topic': topic}
@@ -29,22 +29,22 @@ class Lookupd(HTTPClient):
         return self._json_api(self.url('nodes'))
 
     def delete_topic(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('delete_topic'),
             params = {'topic': topic}
         )
 
     def delete_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('delete_channel'),
             params = {'topic': topic, 'channel': channel}
         )
 
     def tombstone_topic_producer(self, topic, node):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('tombstone_topic_producer'),
             params = {'topic': topic, 'node': node}

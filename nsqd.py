@@ -241,7 +241,7 @@ class Nsqd(HTTPClient):
         raise errors.NSQException(-1, 'no http port')
 
     def publish_http(self, topic, data):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._check_api(
             self.url('put'),
             params = {'topic': topic},
@@ -249,7 +249,7 @@ class Nsqd(HTTPClient):
         )
 
     def multipublish_http(self, topic, messages):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
 
         for message in messages:
             if '\n' not in message:
@@ -265,61 +265,61 @@ class Nsqd(HTTPClient):
         )
 
     def create_topic(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('create_topic'),
             params = {'topic': topic}
         )
 
     def delete_topic(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('delete_topic'),
             params = {'topic': topic}
         )
 
     def create_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('create_channel'),
             params = {'topic': topic, 'channel': channel}
         )
 
     def delete_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('delete_channel'),
             params = {'topic': topic, 'channel': channel}
         )
 
     def empty_topic(self, topic):
-        assert nsq.valid_topic_name(topic)
+        nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('empty_topic'),
             params = {'topic': topic}
         )
 
     def empty_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('empty_channel'),
             params = {'topic': topic, 'channel': channel}
         )
 
     def pause_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('pause_channel'),
             params = {'topic': topic, 'channel': channel}
         )
 
     def unpause_channel(self, topic, channel):
-        assert nsq.valid_topic_name(topic)
-        assert nsq.valid_channel_name(channel)
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('unpause_channel'),
             params = {'topic': topic, 'channel': channel}
