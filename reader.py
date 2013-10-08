@@ -203,7 +203,7 @@ class Reader(object):
         try:
             self.on_message.send(self, conn=conn, message=message)
             if not self.async:
-                self.finish(message)
+                message.finish()
             return
 
         except NSQRequeueMessage:
