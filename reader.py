@@ -66,7 +66,7 @@ class Reader(object):
 
     def _query_lookupd(self, lookupd):
         try:
-            producers = lookupd.lookup(self.topic)
+            producers = lookupd.lookup(self.topic)['producers']
 
         except Exception as error:
             template = 'Failed to lookup %s on %s (%s)'
