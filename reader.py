@@ -29,7 +29,7 @@ class Reader(object):
         lookupd_http_addresses  = assert_list(lookupd_http_addresses)
         self.lookupds           = [Lookupd(a) for a in lookupd_http_addresses]
         self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
-        assert self.nsqd_tcp_addresses or self.lookupd.addresses
+        assert self.nsqd_tcp_addresses or self.lookupds
 
         self.topic                 = topic
         self.channel               = channel
