@@ -23,7 +23,8 @@ class Reader(object):
         async                  = False,
         max_tries              = 5,
         max_in_flight          = 1,
-        lookupd_poll_interval  = 120
+        lookupd_poll_interval  = 120,
+        requeue_delay          = 0
     ):
         lookupd_http_addresses  = assert_list(lookupd_http_addresses)
         self.lookupds           = [Lookupd(a) for a in lookupd_http_addresses]
@@ -36,6 +37,7 @@ class Reader(object):
         self.max_tries             = max_tries
         self.max_in_flight         = max_in_flight
         self.lookupd_poll_interval = lookupd_poll_interval
+        self.requeue_delay         = requeue_delay
         self.logger                = logging.getLogger(__name__)
 
         self.on_response = blinker.Signal()
@@ -211,7 +213,7 @@ class Reader(object):
             template = '[%s] caught exception while handling message'
             self.logger.exception(template % conn)
 
-        message.requeue()
+        message.requeue(self.requeue_delay)
 
     def update_ready(self, conn):
         max_in_flight = self.connection_max_in_flight()
