@@ -75,6 +75,11 @@ class Nsqd(HTTPClient):
 
             result.set_exception(errors.NSQException(-1, 'not connected'))
 
+    def join(self, timeout=None):
+        if self._send_worker is None:
+            return
+        self._send_worker.join(timeout)
+
     def kill(self):
         self._socket = None
 

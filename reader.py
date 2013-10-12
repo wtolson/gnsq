@@ -240,5 +240,6 @@ class Reader(object):
         for conn in self.conns:
             conn.close()
 
-    def join(self):
-        gevent.joinall([conn.worker for conn in self.conns])
+    def join(self, timeout=None, raise_error=False):
+        workers = [c._send_worker for c in self.conns if c._send_worker]
+        gevent.joinall(workers, timeout, raise_error)
