@@ -135,7 +135,7 @@ class Reader(object):
     def random_connection(self):
         if not self.conns:
             return None
-        return random.choice(self.conns)
+        return random.choice(list(self.conns))
 
     def publish(self, topic, message):
         conn = self.random_connection()
