@@ -76,7 +76,7 @@ class Reader(object):
 
         for producer in producers:
             self.connect_to_nsqd(
-                producer['address'],
+                producer.get('address') or producer['hostname'],
                 producer['tcp_port'],
                 producer['http_port']
             )
