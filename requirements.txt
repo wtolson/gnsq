@@ -1,0 +1,6 @@
+blinker==1.3
+gevent==1.0.1
+gnsq==0.0.1
+greenlet==0.4.2
+requests==2.2.1
+wheel==0.22.0
