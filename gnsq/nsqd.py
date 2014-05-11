@@ -23,24 +23,33 @@ class Nsqd(HTTPClient):
         http_port = 4151,
         timeout   = 60.0
     ):
+        if not isinstance(address, (str, unicode)):
+            raise errors.NSQException('address must be a string')
+
+        if not isinstance(tcp_port, int):
+            raise errors.NSQException('tcp_port must be a int')
+
+        if not isinstance(http_port, int):
+            raise errors.NSQException('http_port must be a int')
+
         self.address   = address
         self.tcp_port  = tcp_port
         self.http_port = http_port
         self.timeout   = timeout
 
         self.on_response = blinker.Signal()
-        self.on_error    = blinker.Signal()
-        self.on_message  = blinker.Signal()
-        self.on_finish   = blinker.Signal()
-        self.on_requeue  = blinker.Signal()
+        self.on_error = blinker.Signal()
+        self.on_message = blinker.Signal()
+        self.on_finish = blinker.Signal()
+        self.on_requeue = blinker.Signal()
 
         self._send_worker = None
-        self._send_queue  = Queue()
+        self._send_queue = Queue()
 
         self._frame_handlers = {
             nsq.FRAME_TYPE_RESPONSE: self.handle_response,
-            nsq.FRAME_TYPE_ERROR:    self.handle_error,
-            nsq.FRAME_TYPE_MESSAGE:  self.handle_message
+            nsq.FRAME_TYPE_ERROR: self.handle_error,
+            nsq.FRAME_TYPE_MESSAGE: self.handle_message
         }
 
         self.reset()
@@ -355,14 +364,10 @@ class Nsqd(HTTPClient):
         return self.address + ':' + str(self.tcp_port)
 
     def __hash__(self):
-        return hash((self.address, self.tcp_port))
+        return hash(str(self))
 
     def __eq__(self, other):
-        return all([
-            isinstance(other, Nsqd),
-            self.address == other.address,
-            self.tcp_port == other.tcp_port,
-        ])
+        return isinstance(other, Nsqd) and str(self) == str(other)
 
     def __cmp__(self, other):
         return hash(self) - hash(other)

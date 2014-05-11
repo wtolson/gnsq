@@ -5,6 +5,14 @@ class NSQException(Exception):
     pass
 
 
+class NSQInvalidTopic(NSQException):
+    pass
+
+
+class NSQInvalidChannel(NSQException):
+    pass
+
+
 class NSQRequeueMessage(NSQException):
     pass
 

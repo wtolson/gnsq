@@ -18,33 +18,35 @@ class Reader(object):
     def __init__(self,
         topic,
         channel,
-        nsqd_tcp_addresses     = [],
+        nsqd_tcp_addresses = [],
         lookupd_http_addresses = [],
-        async                  = False,
-        max_tries              = 5,
-        max_in_flight          = 1,
-        lookupd_poll_interval  = 120,
-        requeue_delay          = 0
+        async = False,
+        max_tries = 5,
+        max_in_flight = 1,
+        lookupd_poll_interval = 120,
+        requeue_delay = 0
     ):
-        lookupd_http_addresses  = assert_list(lookupd_http_addresses)
-        self.lookupds           = [Lookupd(a) for a in lookupd_http_addresses]
+        lookupd_http_addresses = assert_list(lookupd_http_addresses)
+        self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
         self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
-        assert self.nsqd_tcp_addresses or self.lookupds
 
-        self.topic                 = topic
-        self.channel               = channel
-        self.async                 = async
-        self.max_tries             = max_tries
-        self.max_in_flight         = max_in_flight
+        if not self.nsqd_tcp_addresses and not self.lookupds:
+            raise NSQException('must specify at least on nsqd or lookupd')
+
+        self.topic = topic
+        self.channel = channel
+        self.async = async
+        self.max_tries = max_tries
+        self.max_in_flight = max_in_flight
         self.lookupd_poll_interval = lookupd_poll_interval
-        self.requeue_delay         = requeue_delay
-        self.logger                = logging.getLogger(__name__)
+        self.requeue_delay = requeue_delay
+        self.logger = logging.getLogger(__name__)
 
         self.on_response = blinker.Signal()
-        self.on_error    = blinker.Signal()
-        self.on_message  = blinker.Signal()
-        self.on_finish   = blinker.Signal()
-        self.on_requeue  = blinker.Signal()
+        self.on_error = blinker.Signal()
+        self.on_message = blinker.Signal()
+        self.on_finish = blinker.Signal()
+        self.on_requeue = blinker.Signal()
 
         self.conns = set()
         self.stats = {}
@@ -145,10 +147,6 @@ class Reader(object):
         conn.publish(topic, message)
 
     def connect_to_nsqd(self, address, tcp_port, http_port=None):
-        assert isinstance(address, (str, unicode))
-        assert isinstance(tcp_port, int)
-        assert isinstance(http_port, int) or http_port is None
-
         conn = Nsqd(address, tcp_port, http_port)
         if conn in self.conns:
             self.logger.debug('[%s] already connected' % conn)

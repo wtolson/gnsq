@@ -1,6 +1,12 @@
 import re
 import struct
-import json
+
+try:
+    import simplejson as json
+except ImportError:
+    import json  # pyflakes.ignore
+
+from .errors import NSQException, NSQInvalidTopic, NSQInvalidChannel
 
 __all__ = [
     'MAGIC_V2',
@@ -20,17 +26,17 @@ __all__ = [
 ]
 
 MAGIC_V2 = '  V2'
-NEWLINE  = '\n'
+NEWLINE = '\n'
 
 FRAME_TYPE_RESPONSE = 0
-FRAME_TYPE_ERROR    = 1
-FRAME_TYPE_MESSAGE  = 2
+FRAME_TYPE_ERROR = 1
+FRAME_TYPE_MESSAGE = 2
 
 
 #
 # Helpers
 #
-TOPIC_NAME_RE   = re.compile(r'^[\.a-zA-Z0-9_-]+$')
+TOPIC_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+$')
 CHANNEL_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+(#ephemeral)?$')
 
 
@@ -47,18 +53,21 @@ def valid_channel_name(channel):
 
 
 def assert_valid_topic_name(topic):
-    assert valid_topic_name(topic)
+    if valid_topic_name(topic):
+        return
+    raise NSQInvalidTopic()
 
 
 def assert_valid_channel_name(channel):
-    assert valid_channel_name(channel)
+    if valid_channel_name(channel):
+        return
+    raise NSQInvalidChannel()
 
 
 #
 # Responses
 #
 def unpack_size(data):
-    assert len(data) == 4
     return struct.unpack('>l', data)[0]
 
 
@@ -67,10 +76,10 @@ def unpack_response(data):
 
 
 def unpack_message(data):
-    timestamp  = struct.unpack('>q', data[:8])[0]
-    attempts   = struct.unpack('>h', data[8:10])[0]
+    timestamp = struct.unpack('>q', data[:8])[0]
+    attempts = struct.unpack('>h', data[8:10])[0]
     message_id = data[10:26]
-    body       = data[26:]
+    body = data[26:]
     return timestamp, attempts, message_id, body
 
 
@@ -109,8 +118,12 @@ def multipublish(topic_name, messages):
 
 
 def ready(count):
-    assert isinstance(count, int), "ready count must be an integer"
-    assert count >= 0, "ready count cannot be negative"
+    if not isinstance(count, int):
+        raise NSQException('ready count must be an integer')
+
+    if count < 0:
+        raise NSQException('ready count cannot be negative')
+
     return _command('RDY', None, str(count))
 
 
@@ -119,7 +132,8 @@ def finish(message_id):
 
 
 def requeue(message_id, timeout=0):
-    assert isinstance(timeout, int), "requeue timeout must be an integer"
+    if not isinstance(timeout, int):
+        raise NSQException('requeue timeout must be an integer')
     return _command('REQ', None, message_id, str(timeout))
 
 
