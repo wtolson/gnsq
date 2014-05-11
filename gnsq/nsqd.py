@@ -12,16 +12,16 @@ from . import errors
 from .message import Message
 from .httpclient import HTTPClient
 
-HOSTNAME  = socket.gethostname()
+HOSTNAME = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
 
 
 class Nsqd(HTTPClient):
     def __init__(self,
-        address   = '127.0.0.1',
-        tcp_port  = 4150,
+        address = '127.0.0.1',
+        tcp_port = 4150,
         http_port = 4151,
-        timeout   = 60.0
+        timeout = 60.0
     ):
         if not isinstance(address, (str, unicode)):
             raise errors.NSQException('address must be a string')
@@ -32,10 +32,10 @@ class Nsqd(HTTPClient):
         if not isinstance(http_port, int):
             raise errors.NSQException('http_port must be a int')
 
-        self.address   = address
-        self.tcp_port  = tcp_port
+        self.address = address
+        self.tcp_port = tcp_port
         self.http_port = http_port
-        self.timeout   = timeout
+        self.timeout = timeout
 
         self.on_response = blinker.Signal()
         self.on_error = blinker.Signal()
@@ -130,10 +130,10 @@ class Nsqd(HTTPClient):
         self._empty_send_queue()
 
     def reset(self):
-        self.ready_count       = 0
-        self.in_flight         = 0
-        self._buffer           = ''
-        self._socket           = None
+        self.ready_count = 0
+        self.in_flight = 0
+        self._buffer = ''
+        self._socket = None
         self._on_next_response = None
 
     def _readn(self, size):
@@ -160,20 +160,20 @@ class Nsqd(HTTPClient):
         return self._readn(size)
 
     def read_response(self):
-        response    = self._read_response()
+        response = self._read_response()
         frame, data = nsq.unpack_response(response)
 
         if frame not in self._frame_handlers:
             raise errors.NSQFrameError('unknown frame %s' % frame)
 
-        frame_handler          = self._frame_handlers[frame]
-        processed_data         = frame_handler(data)
+        frame_handler = self._frame_handlers[frame]
+        processed_data = frame_handler(data)
         self._on_next_response = None
 
         return frame, processed_data
 
     def handle_response(self, data):
-        if data == '_heartbeat_':
+        if data == nsq.HEARTBEAT:
             self.nop()
 
         elif self._on_next_response is not None:
@@ -193,7 +193,7 @@ class Nsqd(HTTPClient):
 
     def handle_message(self, data):
         self.ready_count -= 1
-        self.in_flight   += 1
+        self.in_flight += 1
         message = Message(self, *nsq.unpack_message(data))
         self.on_message.send(self, message=message)
         return message
@@ -203,13 +203,13 @@ class Nsqd(HTTPClient):
             self.read_response()
 
     def identify(self,
-        short_id           = SHORTNAME,
-        long_id            = HOSTNAME,
+        short_id = SHORTNAME,
+        long_id = HOSTNAME,
         heartbeat_interval = None
     ):
         self.send(nsq.identify({
-            'short_id':           short_id,
-            'long_id':            long_id,
+            'short_id': short_id,
+            'long_id': long_id,
             'heartbeat_interval': heartbeat_interval
         }))
 
@@ -275,7 +275,7 @@ class Nsqd(HTTPClient):
         return self._check_api(
             self.url('mput'),
             params = {'topic': topic},
-            data   = '\n'.join(messages)
+            data = '\n'.join(messages)
         )
 
     def create_topic(self, topic):

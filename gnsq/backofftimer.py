@@ -3,7 +3,7 @@ from random import randint
 
 class BackoffTimer(object):
     def __init__(self, ratio=1, max_interval=None, min_interval=None):
-        self.c     = 0
+        self.c = 0
         self.ratio = ratio
 
         self.max_interval = max_interval

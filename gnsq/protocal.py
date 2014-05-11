@@ -27,6 +27,7 @@ __all__ = [
 
 MAGIC_V2 = '  V2'
 NEWLINE = '\n'
+HEARTBEAT = '_heartbeat_'
 
 FRAME_TYPE_RESPONSE = 0
 FRAME_TYPE_ERROR = 1

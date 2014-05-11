@@ -1,5 +1,5 @@
 import requests
-from . import errors
+from .errors import NSQException
 
 
 class HTTPClient(object):
@@ -23,7 +23,7 @@ class HTTPClient(object):
 
         resp = self.session.post(*args, **kwargs)
         if resp.status_code != 200:
-            raise errors.NSQException(resp.status_code, 'api error')
+            raise NSQException(resp.status_code, 'api error')
 
         return resp.text
 
@@ -37,6 +37,6 @@ class HTTPClient(object):
             except:
                 msg = 'api error'
 
-            raise errors.NSQException(resp.status_code, msg)
+            raise NSQException(resp.status_code, msg)
 
         return resp.json()['data']

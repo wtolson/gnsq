@@ -129,7 +129,7 @@ class Reader(object):
         if len(self.conns) == 0:
             return None
 
-        stats  = self.stats
+        stats = self.stats
         depths = [(stats.get(c, {}).get('depth'), c) for c in self.conns]
 
         return max(depths)[1]
@@ -228,9 +228,9 @@ class Reader(object):
         self.logger.debug(template % (conn, message_id, timeout))
         self.on_requeue.send(
             self,
-            conn       = conn,
+            conn = conn,
             message_id = message_id,
-            timeout    = timeout
+            timeout = timeout
         )
         self.update_ready(conn)
 

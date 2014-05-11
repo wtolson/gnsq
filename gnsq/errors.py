@@ -87,19 +87,19 @@ class NSQTouchFailed(NSQErrorCode):
 
 
 ERROR_CODES = {
-    'E_INVALID':        NSQInvalid,
-    'E_BAD_BODY':       NSQBadBody,
-    'E_BAD_TOPIC':      NSQBadTopic,
-    'E_BAD_CHANNEL':    NSQBadChannel,
-    'E_BAD_MESSAGE':    NSQBadMessage,
-    'E_PUT_FAILED':     NSQPutFailed,
-    'E_PUB_FAILED':     NSQPubFailed,
-    'E_MPUB_FAILED':    NSQMPubFailed,
+    'E_INVALID': NSQInvalid,
+    'E_BAD_BODY': NSQBadBody,
+    'E_BAD_TOPIC': NSQBadTopic,
+    'E_BAD_CHANNEL': NSQBadChannel,
+    'E_BAD_MESSAGE': NSQBadMessage,
+    'E_PUT_FAILED': NSQPutFailed,
+    'E_PUB_FAILED': NSQPubFailed,
+    'E_MPUB_FAILED': NSQMPubFailed,
     'E_FINISH_FAILED':  NSQFinishFailed,
-    'E_FIN_FAILED':     NSQFinishFailed,
+    'E_FIN_FAILED': NSQFinishFailed,
     'E_REQUEUE_FAILED': NSQRequeueFailed,
-    'E_REQ_FAILED':     NSQRequeueFailed,
-    'E_TOUCH_FAILED':   NSQTouchFailed
+    'E_REQ_FAILED': NSQRequeueFailed,
+    'E_TOUCH_FAILED': NSQTouchFailed
 }
 
 
