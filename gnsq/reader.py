@@ -4,8 +4,8 @@ import gevent
 import blinker
 
 from .lookupd import Lookupd
-from .nsqd    import Nsqd
-from .util    import assert_list
+from .nsqd import Nsqd
+from .util import assert_list
 
 from .errors import (
     NSQException,
@@ -124,7 +124,7 @@ class Reader(object):
         return None
 
     def smallest_depth(self):
-        if len(conn) == 0:
+        if len(self.conns) == 0:
             return None
 
         stats  = self.stats

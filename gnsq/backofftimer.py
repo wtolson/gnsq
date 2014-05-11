@@ -1,5 +1,6 @@
 from random import randint
 
+
 class BackoffTimer(object):
     def __init__(self, ratio=1, max_interval=None, min_interval=None):
         self.c     = 0
@@ -13,7 +14,7 @@ class BackoffTimer(object):
         return self
 
     def success(self):
-        self.c = max(self.c-1, 0)
+        self.c = max(self.c - 1, 0)
         return self
 
     def failure(self):

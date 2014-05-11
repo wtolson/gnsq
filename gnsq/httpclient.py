@@ -1,6 +1,7 @@
 import requests
 from . import errors
 
+
 class HTTPClient(object):
     base_url = None
     _session = None

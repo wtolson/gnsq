@@ -1,6 +1,7 @@
 from .httpclient import HTTPClient
 from . import protocal as nsq
 
+
 class Lookupd(HTTPClient):
     def __init__(self, address='http://localhost:4161/'):
         if not address.endswith('/'):

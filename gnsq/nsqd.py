@@ -1,7 +1,6 @@
-import re
 import blinker
-
 import gevent
+
 from gevent import socket
 from gevent.queue import Queue
 from gevent.event import AsyncResult
@@ -15,6 +14,7 @@ from .httpclient import HTTPClient
 
 HOSTNAME  = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
+
 
 class Nsqd(HTTPClient):
     def __init__(self,
@@ -51,7 +51,7 @@ class Nsqd(HTTPClient):
 
     def connect(self):
         if self.is_connected:
-            raise NSQException('already connected')
+            raise errors.NSQException('already connected')
 
         self.reset()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -358,11 +358,11 @@ class Nsqd(HTTPClient):
         return hash((self.address, self.tcp_port))
 
     def __eq__(self, other):
-        return (
-            isinstance(other, Nsqd)         and
-            self.address  == other.address  and
-            self.tcp_port == other.tcp_port
-        )
+        return all([
+            isinstance(other, Nsqd),
+            self.address == other.address,
+            self.tcp_port == other.tcp_port,
+        ])
 
     def __cmp__(self, other):
         return hash(self) - hash(other)
