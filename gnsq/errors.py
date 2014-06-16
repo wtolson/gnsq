@@ -5,14 +5,6 @@ class NSQException(Exception):
     pass
 
 
-class NSQInvalidTopic(NSQException):
-    pass
-
-
-class NSQInvalidChannel(NSQException):
-    pass
-
-
 class NSQRequeueMessage(NSQException):
     pass
 
@@ -95,7 +87,7 @@ ERROR_CODES = {
     'E_PUT_FAILED': NSQPutFailed,
     'E_PUB_FAILED': NSQPubFailed,
     'E_MPUB_FAILED': NSQMPubFailed,
-    'E_FINISH_FAILED':  NSQFinishFailed,
+    'E_FINISH_FAILED': NSQFinishFailed,
     'E_FIN_FAILED': NSQFinishFailed,
     'E_REQUEUE_FAILED': NSQRequeueFailed,
     'E_REQ_FAILED': NSQRequeueFailed,
