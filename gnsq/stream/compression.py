@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-import socket
-import errno
+from errno import EWOULDBLOCK
+from gnsq.errors import NSQSocketError
 
 
 class CompressionSocket(object):
@@ -34,7 +34,7 @@ class CompressionSocket(object):
             uncompressed = self.decompress(chunk)
 
         if not uncompressed:
-            raise socket.error(errno.EWOULDBLOCK)
+            raise NSQSocketError(EWOULDBLOCK, 'Operation would block')
 
         return uncompressed
 

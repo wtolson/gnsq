@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from resource import getpagesize
+from errno import ENOTCONN
 
 import gevent
 from gevent import socket
@@ -43,7 +44,7 @@ class Stream(object):
     def ensure_connection(self):
         if self.connected:
             return
-        raise NSQSocketError(57, 'Socket is not connected')
+        raise NSQSocketError(ENOTCONN, 'Socket is not connected')
 
     def connect(self):
         if self.state not in (INIT, DISCONNECTED):
@@ -70,7 +71,7 @@ class Stream(object):
                 raise NSQSocketError(*error)
 
             if not packet:
-                raise NSQSocketError(-1, 'failed to read {}'.format(size))
+                self.close()
 
             self.buffer += packet
 
@@ -106,7 +107,7 @@ class Stream(object):
     def send_loop(self):
         for data, result in self.queue:
             if not self.connected:
-                error = NSQSocketError(57, 'Socket is not connected')
+                error = NSQSocketError(ENOTCONN, 'Socket is not connected')
                 result.set_exception(error)
 
             try:
