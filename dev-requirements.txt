@@ -1,0 +1,6 @@
+# Install gnsq itself
+-e .
+
+# Install our development requirements
+ipython
+python-snappy

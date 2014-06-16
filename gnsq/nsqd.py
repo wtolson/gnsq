@@ -1,50 +1,74 @@
 import blinker
-import gevent
-
 from gevent import socket
-from gevent.queue import Queue
-from gevent.event import AsyncResult
-from Queue import Empty
+
+try:
+    import simplejson as json
+except ImportError:
+    import json  # pyflakes.ignore
 
 from . import protocal as nsq
 from . import errors
 
 from .message import Message
 from .httpclient import HTTPClient
+from .states import INIT, CONNECTED, DISCONNECTED
+from .stream import Stream
+from .version import __version__
 
 HOSTNAME = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
+USERAGENT = 'gnsq/{}'.format(__version__)
 
 
 class Nsqd(HTTPClient):
-    def __init__(self,
-        address = '127.0.0.1',
-        tcp_port = 4150,
-        http_port = 4151,
-        timeout = 60.0
+    def __init__(
+        self,
+        address='127.0.0.1',
+        tcp_port=4150,
+        http_port=4151,
+        timeout=60.0,
+        client_id=SHORTNAME,
+        hostname=HOSTNAME,
+        heartbeat_interval=30,
+        output_buffer_size=16 * 1024,
+        output_buffer_timeout=250,
+        tls_v1=False,
+        tls_options=None,
+        snappy=False,
+        deflate=False,
+        deflate_level=6,
+        sample_rate=0,
+        user_agent=USERAGENT,
     ):
-        if not isinstance(address, (str, unicode)):
-            raise errors.NSQException('address must be a string')
-
-        if not isinstance(tcp_port, int):
-            raise errors.NSQException('tcp_port must be a int')
-
-        if not isinstance(http_port, int):
-            raise errors.NSQException('http_port must be a int')
-
         self.address = address
         self.tcp_port = tcp_port
         self.http_port = http_port
         self.timeout = timeout
+
+        self.client_id = client_id
+        self.hostname = hostname
+        self.heartbeat_interval = 1000 * heartbeat_interval
+        self.output_buffer_size = output_buffer_size
+        self.output_buffer_timeout = output_buffer_timeout
+        self.tls_v1 = tls_v1
+        self.tls_options = tls_options
+        self.snappy = snappy
+        self.deflate = deflate
+        self.deflate_level = deflate_level
+        self.sample_rate = sample_rate
+        self.user_agent = user_agent
+
+        self.state = INIT
+        self.last_ready = 0
+        self.ready_count = 0
+        self.in_flight = 0
 
         self.on_response = blinker.Signal()
         self.on_error = blinker.Signal()
         self.on_message = blinker.Signal()
         self.on_finish = blinker.Signal()
         self.on_requeue = blinker.Signal()
-
-        self._send_worker = None
-        self._send_queue = Queue()
+        self.on_close = blinker.Signal()
 
         self._frame_handlers = {
             nsq.FRAME_TYPE_RESPONSE: self.handle_response,
@@ -52,123 +76,54 @@ class Nsqd(HTTPClient):
             nsq.FRAME_TYPE_MESSAGE: self.handle_message
         }
 
-        self.reset()
-
     @property
-    def is_connected(self):
-        return self._socket is not None
+    def connected(self):
+        return self.state == CONNECTED
 
     def connect(self):
-        if self.is_connected:
-            raise errors.NSQException('already connected')
+        if self.state not in (INIT, DISCONNECTED):
+            return
 
-        self.reset()
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(self.timeout)
+        stream = Stream(self.address, self.tcp_port, self.timeout)
 
         try:
-            s.connect((self.address, self.tcp_port))
+            stream.connect((self.address, self.tcp_port))
         except socket.error as error:
             raise errors.NSQSocketError(*error)
 
-        self._socket = s
-        self._send_worker = gevent.spawn(self._send)
+        self.stream = stream
+        self.state = CONNECTED
         self.send(nsq.MAGIC_V2)
 
-    def _empty_send_queue(self):
-        while 1:
-            try:
-                data, result = self._send_queue.get_nowait()
-            except Empty:
-                return
-
-            result.set_exception(errors.NSQException(-1, 'not connected'))
-
-    def join(self, timeout=None):
-        if self._send_worker is None:
-            return
-        self._send_worker.join(timeout)
-
-    def kill(self):
-        self._socket = None
-
-        if self._send_worker:
-            worker, self._send_worker = self._send_worker, None
-            worker.kill()
-
-        self._empty_send_queue()
+    def close_stream(self):
+        self.stream.close()
+        self.state = DISCONNECTED
+        self.on_close.send(self)
 
     def send(self, data, async=False):
-        if not self.is_connected:
-            raise errors.NSQException(-1, 'not connected')
-
-        result = AsyncResult()
-        self._send_queue.put((data, result))
-
-        if async:
-            return result
-
-        result.get()
-
-    def _send(self):
-        while 1:
-            data, result = self._send_queue.get()
-            if not self.is_connected:
-                result.set_exception(errors.NSQException(-1, 'not connected'))
-                break
-
-            try:
-                self._socket.send(data)
-                result.set(True)
-
-            except socket.error as error:
-                result.set_exception(errors.NSQSocketError(*error))
-
-            except Exception as error:
-                result.set_exception(error)
-
-        self._empty_send_queue()
-
-    def reset(self):
-        self.ready_count = 0
-        self.in_flight = 0
-        self._buffer = ''
-        self._socket = None
-        self._on_next_response = None
-
-    def _readn(self, size):
-        while len(self._buffer) < size:
-            if not self.is_connected:
-                raise errors.NSQException(-1, 'not connected')
-
-            try:
-                packet = self._socket.recv(4096)
-            except socket.error as error:
-                raise errors.NSQSocketError(*error)
-
-            if not packet:
-                raise errors.NSQSocketError(-1, 'failed to read %d' % size)
-
-            self._buffer += packet
-
-        data = self._buffer[:size]
-        self._buffer = self._buffer[size:]
-        return data
+        try:
+            return self.stream.send(data, async)
+        except Exception:
+            self.close_stream()
+            raise
 
     def _read_response(self):
-        size = nsq.unpack_size(self._readn(4))
-        return self._readn(size)
+        try:
+            size = nsq.unpack_size(self.stream.read(4))
+            return self.read(size)
+        except Exception:
+            self.close_stream()
+            raise
 
     def read_response(self):
         response = self._read_response()
         frame, data = nsq.unpack_response(response)
 
         if frame not in self._frame_handlers:
-            raise errors.NSQFrameError('unknown frame %s' % frame)
+            raise errors.NSQFrameError('unknown frame {}'.format(frame))
 
         frame_handler = self._frame_handlers[frame]
         processed_data = frame_handler(data)
-        self._on_next_response = None
 
         return frame, processed_data
 
@@ -176,19 +131,16 @@ class Nsqd(HTTPClient):
         if data == nsq.HEARTBEAT:
             self.nop()
 
-        elif self._on_next_response is not None:
-            self._on_next_response(self, response=data)
-
         self.on_response.send(self, response=data)
         return data
 
     def handle_error(self, data):
         error = errors.make_error(data)
-
-        if self._on_next_response is not None:
-            self._on_next_response(self, response=error)
-
         self.on_error.send(self, error=error)
+
+        if error.fatal:
+            self.close_stream()
+
         return error
 
     def handle_message(self, data):
@@ -198,20 +150,80 @@ class Nsqd(HTTPClient):
         self.on_message.send(self, message=message)
         return message
 
+    def finish_inflight(self):
+        self.in_flight -= 1
+
     def listen(self):
-        while self.is_connected:
+        while self.connected:
             self.read_response()
 
-    def identify(self,
-        short_id = SHORTNAME,
-        long_id = HOSTNAME,
-        heartbeat_interval = None
-    ):
+    def upgrade_to_tls(self):
+        self.stream.upgrade_to_tls(self.tls_options)
+
+    def upgrade_to_snappy(self):
+        self.stream.upgrade_to_snappy()
+
+    def upgrade_to_defalte(self):
+        self.stream.upgrade_to_defalte(self.deflate_level)
+
+    def identify(self):
         self.send(nsq.identify({
-            'short_id': short_id,
-            'long_id': long_id,
-            'heartbeat_interval': heartbeat_interval
+            # nsqd <0.2.28
+            'short_id': self.client_id,
+            'long_id': self.hostname,
+
+            # nsqd 0.2.28+
+            'client_id': self.client_id,
+            'hostname': self.hostname,
+
+            # nsqd 0.2.19+
+            'feature_negotiation': True,
+            'heartbeat_interval': self.heartbeat_interval,
+
+            # nsqd 0.2.21+
+            'output_buffer_size': self.output_buffer_size,
+            'output_buffer_timeout': self.output_buffer_timeout,
+
+            # nsqd 0.2.22+
+            'tls_v1': self.tls_v1,
+
+            # nsqd 0.2.23+
+            'snappy': self.snappy,
+            'deflate': self.deflate,
+            'deflate_level': self.deflate_level,
+
+            # nsqd nsqd 0.2.25+
+            'sample_rate': self.sample_rate,
+            'user_agent': self.user_agent,
         }))
+
+        frame, data = self.read_response()
+
+        if frame == nsq.FRAME_TYPE_ERROR:
+            raise data
+
+        if data == 'OK':
+            return
+
+        try:
+            data = json.loads(data)
+
+        except ValueError:
+            self.close_stream()
+            msg = 'failed to parse IDENTIFY response JSON from nsqd: {!r}'
+            raise errors.NSQException(msg.format(data))
+
+        if self.tls_v1 and data.get('tls_v1'):
+            self.upgrade_to_tls()
+
+        elif self.snappy and data.get('snappy'):
+            self.upgrade_to_snappy()
+
+        elif self.deflate and data.get('deflate'):
+            self.deflate_level = data.get('deflate_level', self.deflate_level)
+            self.upgrade_to_defalte()
+
+        return data
 
     def subscribe(self, topic, channel):
         self.send(nsq.subscribe(topic, channel))
@@ -223,17 +235,18 @@ class Nsqd(HTTPClient):
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
+        self.last_ready = count
         self.ready_count = count
         self.send(nsq.ready(count))
 
     def finish(self, message_id):
         self.send(nsq.finish(message_id))
-        self.in_flight -= 1
+        self.finish_inflight()
         self.on_finish.send(self, message_id=message_id)
 
     def requeue(self, message_id, timeout=0):
         self.send(nsq.requeue(message_id, timeout))
-        self.in_flight -= 1
+        self.finish_inflight()
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def touch(self, message_id):
@@ -247,7 +260,7 @@ class Nsqd(HTTPClient):
 
     @property
     def base_url(self):
-        return 'http://%s:%s/' % (self.address, self.http_port)
+        return 'http://{}:{}/'.format(self.address, self.http_port)
 
     def _check_connection(self):
         if self.http_port:
@@ -258,8 +271,8 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_topic_name(topic)
         return self._check_api(
             self.url('put'),
-            params = {'topic': topic},
-            data   = data
+            params={'topic': topic},
+            data=data
         )
 
     def multipublish_http(self, topic, messages):
@@ -269,27 +282,27 @@ class Nsqd(HTTPClient):
             if '\n' not in message:
                 continue
 
-            err = 'newlines are not allowed in http multipublish'
-            raise errors.NSQException(-1, err)
+            error = 'newlines are not allowed in http multipublish'
+            raise errors.NSQException(-1, error)
 
         return self._check_api(
             self.url('mput'),
-            params = {'topic': topic},
-            data = '\n'.join(messages)
+            params={'topic': topic},
+            data='\n'.join(messages)
         )
 
     def create_topic(self, topic):
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('create_topic'),
-            params = {'topic': topic}
+            params={'topic': topic}
         )
 
     def delete_topic(self, topic):
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('delete_topic'),
-            params = {'topic': topic}
+            params={'topic': topic}
         )
 
     def create_channel(self, topic, channel):
@@ -297,7 +310,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('create_channel'),
-            params = {'topic': topic, 'channel': channel}
+            params={'topic': topic, 'channel': channel}
         )
 
     def delete_channel(self, topic, channel):
@@ -305,14 +318,14 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('delete_channel'),
-            params = {'topic': topic, 'channel': channel}
+            params={'topic': topic, 'channel': channel}
         )
 
     def empty_topic(self, topic):
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('empty_topic'),
-            params = {'topic': topic}
+            params={'topic': topic}
         )
 
     def empty_channel(self, topic, channel):
@@ -320,7 +333,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('empty_channel'),
-            params = {'topic': topic, 'channel': channel}
+            params={'topic': topic, 'channel': channel}
         )
 
     def pause_channel(self, topic, channel):
@@ -328,7 +341,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('pause_channel'),
-            params = {'topic': topic, 'channel': channel}
+            params={'topic': topic, 'channel': channel}
         )
 
     def unpause_channel(self, topic, channel):
@@ -336,7 +349,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
             self.url('unpause_channel'),
-            params = {'topic': topic, 'channel': channel}
+            params={'topic': topic, 'channel': channel}
         )
 
     def stats(self):
@@ -349,13 +362,13 @@ class Nsqd(HTTPClient):
         return self._json_api(self.url('info'))
 
     def publish(self, topic, data):
-        if self.is_connected:
+        if self.connected:
             return self.publish_tcp(topic, data)
         else:
             return self.publish_http(topic, data)
 
     def multipublish(self, topic, messages):
-        if self.is_connected:
+        if self.connected:
             return self.multipublish_tcp(topic, messages)
         else:
             return self.multipublish_http(topic, messages)

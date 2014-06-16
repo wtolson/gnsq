@@ -6,7 +6,6 @@ try:
 except ImportError:
     import json  # pyflakes.ignore
 
-from .errors import NSQException, NSQInvalidTopic, NSQInvalidChannel
 
 __all__ = [
     'MAGIC_V2',
@@ -56,13 +55,13 @@ def valid_channel_name(channel):
 def assert_valid_topic_name(topic):
     if valid_topic_name(topic):
         return
-    raise NSQInvalidTopic()
+    raise ValueError('invalid topic name')
 
 
 def assert_valid_channel_name(channel):
     if valid_channel_name(channel):
         return
-    raise NSQInvalidChannel()
+    raise ValueError('invalid channel name')
 
 
 #
@@ -120,10 +119,10 @@ def multipublish(topic_name, messages):
 
 def ready(count):
     if not isinstance(count, int):
-        raise NSQException('ready count must be an integer')
+        raise TypeError('ready count must be an integer')
 
     if count < 0:
-        raise NSQException('ready count cannot be negative')
+        raise ValueError('ready count cannot be negative')
 
     return _command('RDY', None, str(count))
 
@@ -134,7 +133,7 @@ def finish(message_id):
 
 def requeue(message_id, timeout=0):
     if not isinstance(timeout, int):
-        raise NSQException('requeue timeout must be an integer')
+        raise TypeError('requeue timeout must be an integer')
     return _command('REQ', None, message_id, str(timeout))
 
 

@@ -1,0 +1,137 @@
+from __future__ import absolute_import
+from resource import getpagesize
+
+import gevent
+from gevent import socket
+from gevent.queue import Queue
+from gevent.event import AsyncResult
+
+try:
+    import SSLSocket
+except ImportError:
+    SSLSocket = None  # pyflakes.ignore
+
+from gnsq.states import INIT, CONNECTED, DISCONNECTED
+from gnsq.errors import NSQSocketError
+
+try:
+    from .snappy import SnappySocket
+except ImportError:
+    SnappySocket = None  # pyflakes.ignore
+
+from .defalte import DefalteSocket
+
+
+class Stream(object):
+    def __init__(self, address, port, timeout, buffer_size=getpagesize()):
+        self.address = address
+        self.port = port
+        self.timeout = timeout
+
+        self.buffer = ''
+        self.buffer_size = buffer_size
+
+        self.socket = None
+        self.worker = None
+        self.queue = Queue()
+        self.state = INIT
+
+    @property
+    def connected(self):
+        return self.state == CONNECTED
+
+    def ensure_connection(self):
+        if self.connected:
+            return
+        raise NSQSocketError(57, 'Socket is not connected')
+
+    def connect(self):
+        if self.state not in (INIT, DISCONNECTED):
+            return
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(self.timeout)
+        self.socket.connect((self.address, self.port))
+
+        self.state = CONNECTED
+        self.worker = gevent.spawn(self.send_loop)
+
+    def read(self, size):
+        while len(self.buffer) < size:
+            self.ensure_connection()
+
+            try:
+                packet = self.socket.recv(self.buffer_size)
+            except socket.error as error:
+                raise NSQSocketError(*error)
+
+            if not packet:
+                raise NSQSocketError(-1, 'failed to read {}'.format(size))
+
+            self.buffer += packet
+
+        data = self.buffer[:size]
+        self.buffer = self.buffer[size:]
+
+        return data
+
+    def send(self, data, async=False):
+        self.ensure_connection()
+
+        result = AsyncResult()
+        self.queue.put((data, result))
+
+        if async:
+            return result
+
+        result.get()
+
+    def consume_buffer(self):
+        data = self.buffer
+        self.buffer = ''
+        return data
+
+    def close(self, data):
+        if not self.connected:
+            return
+
+        self.state = DISCONNECTED
+        self.queue.put(StopIteration)
+        self.socket.close()
+
+    def send_loop(self):
+        for data, result in self.queue:
+            if not self.connected:
+                error = NSQSocketError(57, 'Socket is not connected')
+                result.set_exception(error)
+
+            try:
+                self.socket.send(data)
+                result.set()
+
+            except socket.error as error:
+                result.set_exception(NSQSocketError(*error))
+
+            except Exception as error:
+                result.set_exception(error)
+
+    def upgrade_to_tls(self, options):
+        if SSLSocket is None:
+            msg = 'tls_v1 requires Python 2.6+ or Python 2.5 w/ pip install ssl'
+            raise RuntimeError(msg)
+
+        self.ensure_connection()
+        self.socket = SSLSocket(self.socket, **options)
+
+    def upgrade_to_snappy(self):
+        if SnappySocket is None:
+            raise RuntimeError('snappy requires the python-snappy package')
+
+        self.ensure_connection()
+        self.socket = SnappySocket(self.socket)
+        self.socket.bootstrap(self.consume_buffer())
+
+    def upgrade_to_defalte(self, level):
+        self.ensure_connection()
+        self.socket = DefalteSocket(self.socket, level)
+        self.socket.bootstrap(self.consume_buffer())

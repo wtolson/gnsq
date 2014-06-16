@@ -3,9 +3,10 @@ import random
 import gevent
 import blinker
 
+from itertools import cycle
+
 from .lookupd import Lookupd
 from .nsqd import Nsqd
-from .util import assert_list
 
 from .errors import (
     NSQException,
@@ -15,31 +16,50 @@ from .errors import (
 
 
 class Reader(object):
-    def __init__(self,
+    def __init__(
+        self,
         topic,
         channel,
-        nsqd_tcp_addresses = [],
-        lookupd_http_addresses = [],
-        async = False,
-        max_tries = 5,
-        max_in_flight = 1,
-        lookupd_poll_interval = 120,
-        requeue_delay = 0
+        nsqd_tcp_addresses=[],
+        lookupd_http_addresses=[],
+        async=False,
+        max_tries=5,
+        max_in_flight=1,
+        requeue_delay=0,
+        lookupd_poll_interval=60,
+        lookupd_poll_jitter=0.3,
+        low_rdy_idle_timeout=10,
+        max_backoff_duration=128,
     ):
-        lookupd_http_addresses = assert_list(lookupd_http_addresses)
-        self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
-        self.nsqd_tcp_addresses = assert_list(nsqd_tcp_addresses)
+        if not nsqd_tcp_addresses and not lookupd_http_addresses:
+            raise ValueError('must specify at least on nsqd or lookupd')
 
-        if not self.nsqd_tcp_addresses and not self.lookupds:
-            raise NSQException('must specify at least on nsqd or lookupd')
+        if isinstance(nsqd_tcp_addresses, basestring):
+            self.nsqd_tcp_addresses = [nsqd_tcp_addresses]
+        elif isinstance(nsqd_tcp_addresses, (list, tuple)):
+            self.nsqd_tcp_addresses = nsqd_tcp_addresses
+        else:
+            raise TypeError('nsqd_tcp_addresses must be a list or tuple')
+
+        if isinstance(lookupd_http_addresses, basestring):
+            lookupd_http_addresses = [lookupd_http_addresses]
+        elif isinstance(lookupd_http_addresses, (list, tuple)):
+            random.shuffle(lookupd_http_addresses)
+        else:
+            raise TypeError('lookupd_http_addresses must be a list or tuple')
+
+        self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
+        self.iterlookupds = cycle(self.lookupds)
 
         self.topic = topic
         self.channel = channel
         self.async = async
         self.max_tries = max_tries
         self.max_in_flight = max_in_flight
-        self.lookupd_poll_interval = lookupd_poll_interval
         self.requeue_delay = requeue_delay
+        self.lookupd_poll_interval = lookupd_poll_interval
+        self.lookupd_poll_jitter = lookupd_poll_jitter
+
         self.logger = logging.getLogger(__name__)
 
         self.on_response = blinker.Signal()
@@ -47,8 +67,10 @@ class Reader(object):
         self.on_message = blinker.Signal()
         self.on_finish = blinker.Signal()
         self.on_requeue = blinker.Signal()
+        self.on_exception = blinker.Signal()
 
         self.conns = set()
+        self.pending = set()
         self.stats = {}
 
     def start(self):
@@ -56,40 +78,49 @@ class Reader(object):
         self.query_lookupd()
         self.update_stats()
         self._poll()
+        # TODO: run _redistribute_rdy_state
 
     def connection_max_in_flight(self):
         return max(1, self.max_in_flight / max(1, len(self.conns)))
+
+    def is_starved(self):
+        for conn in self.conns:
+            # FIXME
+            if conn.in_flight > 0 and conn.in_flight >= (conn.last_rdy * 0.85):
+                return True
+        return False
 
     def query_nsqd(self):
         self.logger.debug('querying nsqd...')
         for address in self.nsqd_tcp_addresses:
             address, port = address.split(':')
-            self.connect_to_nsqd(address, int(port))
+            conn = Nsqd(address, int(port))
+            self.connect_to_nsqd(conn)
 
-    def _query_lookupd(self, lookupd):
+    def query_lookupd(self, lookupd):
+        self.logger.debug('querying lookupd...')
+        lookupd = self.iterlookupds.next()
+
         try:
             producers = lookupd.lookup(self.topic)['producers']
 
         except Exception as error:
-            template = 'Failed to lookup %s on %s (%s)'
-            data = (self.topic, lookupd.address, error)
-            self.logger.warn(template % data)
+            msg = 'Failed to lookup {} on {} ({})'
+            self.logger.warn(msg.format(self.topic, lookupd.address, error))
             return
 
         for producer in producers:
-            self.connect_to_nsqd(
-                producer.get('address') or producer['hostname'],
+            conn = Nsqd(
+                producer.get('broadcast_address') or producer['address'],
                 producer['tcp_port'],
                 producer['http_port']
             )
-
-    def query_lookupd(self):
-        self.logger.debug('querying lookupd...')
-        for lookupd in self.lookupds:
-            self._query_lookupd(lookupd)
+            self.connect_to_nsqd(conn)
 
     def _poll(self):
-        gevent.sleep(random.random() * self.lookupd_poll_interval * 0.1)
+        delay = self.lookupd_poll_interval * self.lookupd_poll_jitter
+        gevent.sleep(random.random() * delay)
+
         while 1:
             gevent.sleep(self.lookupd_poll_interval)
             self.query_nsqd()
@@ -107,7 +138,8 @@ class Reader(object):
         try:
             stats = conn.stats()
         except Exception as error:
-            self.logger.warn('[%s] stats lookup failed (%r)' % (conn, error))
+            msg = '[{}] stats lookup failed ({!r})'.format(conn, error)
+            self.logger.warn(msg)
             return None
 
         if stats is None:
@@ -146,13 +178,16 @@ class Reader(object):
 
         conn.publish(topic, message)
 
-    def connect_to_nsqd(self, address, tcp_port, http_port=None):
-        conn = Nsqd(address, tcp_port, http_port)
+    def connect_to_nsqd(self, conn):
         if conn in self.conns:
-            self.logger.debug('[%s] already connected' % conn)
+            self.logger.debug('[{}] already connected'.format(conn))
             return
 
-        self.logger.debug('[%s] connecting...' % conn)
+        if conn in self.pending:
+            self.logger.debug('[{}] already pending'.format(conn))
+            return
+
+        self.logger.debug('[{}] connecting...'.format(conn))
 
         conn.on_response.connect(self.handle_response)
         conn.on_error.connect(self.handle_error)
@@ -160,42 +195,51 @@ class Reader(object):
         conn.on_finish.connect(self.handle_finish)
         conn.on_requeue.connect(self.handle_requeue)
 
+        self.pending.add(conn)
+
         try:
             conn.connect()
             conn.identify()
             conn.subscribe(self.topic, self.channel)
             conn.ready(self.connection_max_in_flight())
+
         except NSQException as error:
-            self.logger.debug('[%s] connection failed (%r)' % (conn, error))
+            msg = '[{}] connection failed ({!r})'.format(conn, error)
+            self.logger.debug(msg)
             return
 
-        self.logger.info('[%s] connection successful' % conn)
+        finally:
+            self.pending.remove(conn)
+
         self.conns.add(conn)
         conn.worker = gevent.spawn(self._listen, conn)
+
+        self.logger.info('[{}] connection successful'.format(conn))
 
     def _listen(self, conn):
         try:
             conn.listen()
         except NSQException as error:
-            self.logger.warning('[%s] connection lost (%r)' % (conn, error))
+            msg = '[{}] connection lost ({!r})'.format(conn, error)
+            self.logger.warning(msg)
 
         self.conns.remove(conn)
-        conn.kill()
+        conn.kill()  # FIXME
 
     def handle_response(self, conn, response):
-        self.logger.debug('[%s] response: %s' % (conn, response))
+        self.logger.debug('[{}] response: {}'.format(conn, response))
         self.on_response.send(self, conn=conn, response=response)
 
     def handle_error(self, conn, error):
-        self.logger.debug('[%s] error: %s' % (conn, error))
+        self.logger.debug('[{}] error: {}'.format(conn, error))
         self.on_error.send(self, conn=conn, error=error)
 
     def handle_message(self, conn, message):
-        self.logger.debug('[%s] got message: %s' % (conn, message.id))
+        self.logger.debug('[{}] got message: {}'.format(conn, message.id))
 
         if self.max_tries and message.attempts > self.max_tries:
-            template = "giving up on message '%s' after max tries %d"
-            self.logger.warning(template, message.id, self.max_tries)
+            msg = "giving up on message '{}' after max tries {}"
+            self.logger.warning(msg.format(message.id, self.max_tries))
             return message.finish()
 
         try:
@@ -207,9 +251,10 @@ class Reader(object):
         except NSQRequeueMessage:
             pass
 
-        except Exception:
-            template = '[%s] caught exception while handling message'
-            self.logger.exception(template % conn)
+        except Exception as error:
+            msg = '[{}] caught exception while handling message'.format(conn)
+            self.logger.exception(msg)
+            self.on_exception(self, conn=conn, message=message, error=error)
 
         message.requeue(self.requeue_delay)
 
@@ -219,18 +264,18 @@ class Reader(object):
             conn.ready(max_in_flight)
 
     def handle_finish(self, conn, message_id):
-        self.logger.debug('[%s] finished message: %s' % (conn, message_id))
+        self.logger.debug('[{}] finished message: {}'.format(conn, message_id))
         self.on_finish.send(self, conn=conn, message_id=message_id)
         self.update_ready(conn)
 
     def handle_requeue(self, conn, message_id, timeout):
-        template = '[%s] requeued message: %s (%s)'
-        self.logger.debug(template % (conn, message_id, timeout))
+        msg = '[{}] requeued message: {} ({})'
+        self.logger.debug(msg.format(conn, message_id, timeout))
         self.on_requeue.send(
             self,
-            conn = conn,
-            message_id = message_id,
-            timeout = timeout
+            conn=conn,
+            message_id=message_id,
+            timeout=timeout
         )
         self.update_ready(conn)
 
@@ -239,5 +284,6 @@ class Reader(object):
             conn.close()
 
     def join(self, timeout=None, raise_error=False):
+        # FIXME
         workers = [c._send_worker for c in self.conns if c._send_worker]
         gevent.joinall(workers, timeout, raise_error)
