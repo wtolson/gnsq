@@ -51,7 +51,11 @@ class Stream(object):
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(self.timeout)
-        self.socket.connect((self.address, self.port))
+
+        try:
+            self.socket.connect((self.address, self.port))
+        except socket.error as error:
+            raise NSQSocketError(*error)
 
         self.state = CONNECTED
         self.worker = gevent.spawn(self.send_loop)
@@ -91,7 +95,7 @@ class Stream(object):
         self.buffer = ''
         return data
 
-    def close(self, data):
+    def close(self):
         if not self.connected:
             return
 

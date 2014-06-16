@@ -85,11 +85,7 @@ class Nsqd(HTTPClient):
             return
 
         stream = Stream(self.address, self.tcp_port, self.timeout)
-
-        try:
-            stream.connect((self.address, self.tcp_port))
-        except socket.error as error:
-            raise errors.NSQSocketError(*error)
+        stream.connect()
 
         self.stream = stream
         self.state = CONNECTED
@@ -110,7 +106,7 @@ class Nsqd(HTTPClient):
     def _read_response(self):
         try:
             size = nsq.unpack_size(self.stream.read(4))
-            return self.read(size)
+            return self.stream.read(size)
         except Exception:
             self.close_stream()
             raise
