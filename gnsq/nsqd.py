@@ -62,6 +62,7 @@ class Nsqd(HTTPClient):
         self.last_ready = 0
         self.ready_count = 0
         self.in_flight = 0
+        self.max_rdy_count = 2500
 
         self.on_response = blinker.Signal()
         self.on_error = blinker.Signal()
@@ -208,6 +209,8 @@ class Nsqd(HTTPClient):
             self.close_stream()
             msg = 'failed to parse IDENTIFY response JSON from nsqd: {!r}'
             raise errors.NSQException(msg.format(data))
+
+        self.max_rdy_count = data.get('max_rdy_count', self.max_rdy_count)
 
         if self.tls_v1 and data.get('tls_v1'):
             self.upgrade_to_tls()
