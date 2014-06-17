@@ -154,7 +154,7 @@ class Nsqd(HTTPClient):
             self.read_response()
 
     def upgrade_to_tls(self):
-        self.stream.upgrade_to_tls(self.tls_options)
+        self.stream.upgrade_to_tls(**self.tls_options)
 
     def upgrade_to_snappy(self):
         self.stream.upgrade_to_snappy()

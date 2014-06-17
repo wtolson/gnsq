@@ -8,7 +8,7 @@ from gevent.queue import Queue
 from gevent.event import AsyncResult
 
 try:
-    import SSLSocket
+    from gevent.ssl import SSLSocket, PROTOCOL_TLSv1, CERT_NONE
 except ImportError:
     SSLSocket = None  # pyflakes.ignore
 
@@ -120,13 +120,26 @@ class Stream(object):
             except Exception as error:
                 result.set_exception(error)
 
-    def upgrade_to_tls(self, options):
+    def upgrade_to_tls(
+        self,
+        keyfile=None,
+        certfile=None,
+        cert_reqs=CERT_NONE,
+        ca_certs=None
+    ):
         if SSLSocket is None:
             msg = 'tls_v1 requires Python 2.6+ or Python 2.5 w/ pip install ssl'
             raise RuntimeError(msg)
 
         self.ensure_connection()
-        self.socket = SSLSocket(self.socket, **options)
+        self.socket = SSLSocket(
+            self.socket,
+            keyfile=keyfile,
+            certfile=certfile,
+            cert_reqs=cert_reqs,
+            ca_certs=ca_certs,
+            ssl_version=PROTOCOL_TLSv1,
+        )
 
     def upgrade_to_snappy(self):
         if SnappySocket is None:
