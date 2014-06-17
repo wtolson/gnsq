@@ -26,6 +26,7 @@ class Reader(object):
         channel,
         nsqd_tcp_addresses=[],
         lookupd_http_addresses=[],
+        name=None,
         async=False,
         max_tries=5,
         max_in_flight=1,
@@ -68,11 +69,16 @@ class Reader(object):
         self.low_ready_idle_timeout = low_ready_idle_timeout
         self.max_backoff_duration = max_backoff_duration
 
+        if name:
+            self.name = name
+        else:
+            self.name = '{}.{}.{}'.format(__name__, self.topic, self.channel)
+
         self._need_ready_redistributed = False
         self.last_random_ready = time.time()
         self.state = INIT
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.name)
         self.conn_backoffs = defaultdict(self.create_backoff)
         self.backoff = self.create_backoff()
 
