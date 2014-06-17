@@ -77,13 +77,11 @@ class Reader(object):
 
         self.conns = set()
         self.pending = set()
-        self.stats = {}
 
     def start(self):
         self.query_nsqd()
         self.query_lookupd()
-        self.update_stats()
-        self._poll()
+        self._poll()  # spawn poll only if we have lookupds
         # TODO: run _redistribute_rdy_state
 
     def connection_max_in_flight(self):
@@ -91,7 +89,6 @@ class Reader(object):
 
     def is_starved(self):
         for conn in self.conns:
-            # FIXME
             if conn.in_flight > 0 and conn.in_flight >= (conn.last_rdy * 0.85):
                 return True
         return False
@@ -103,7 +100,10 @@ class Reader(object):
             conn = Nsqd(address, int(port))
             self.connect_to_nsqd(conn)
 
-    def query_lookupd(self, lookupd):
+    def query_lookupd(self):
+        if not self.lookupds:
+            return
+
         self.logger.debug('querying lookupd...')
         lookupd = self.iterlookupds.next()
 
@@ -134,46 +134,6 @@ class Reader(object):
             gevent.sleep(self.lookupd_poll_interval)
             self.query_nsqd()
             self.query_lookupd()
-            self.update_stats()
-
-    def update_stats(self):
-        stats = {}
-        for conn in self.conns:
-            stats[conn] = self.get_stats(conn)
-
-        self.stats = stats
-
-    def get_stats(self, conn):
-        try:
-            stats = conn.stats()
-        except Exception as error:
-            msg = '[{}] stats lookup failed ({!r})'.format(conn, error)
-            self.logger.warn(msg)
-            return None
-
-        if stats is None:
-            return None
-
-        for topic in stats['topics']:
-            if topic['topic_name'] != self.topic:
-                continue
-
-            for channel in topic['channels']:
-                if channel['channel_name'] != self.channel:
-                    continue
-
-                return channel
-
-        return None
-
-    def smallest_depth(self):
-        if len(self.conns) == 0:
-            return None
-
-        stats = self.stats
-        depths = [(stats.get(c, {}).get('depth'), c) for c in self.conns]
-
-        return max(depths)[1]
 
     def random_connection(self):
         if not self.conns:
@@ -209,8 +169,18 @@ class Reader(object):
         try:
             conn.connect()
             conn.identify()
+
+            if conn.max_rdy_count < self.max_in_flight:
+                self.logger.warning(' '.join([
+                    '[{}] max RDY count {} < reader max in flight {},',
+                    'truncation possible'
+                ]).format(conn, conn.max_rdy_count, self.max_in_flight))
+
             conn.subscribe(self.topic, self.channel)
-            conn.ready(self.connection_max_in_flight())
+
+            # Send RDY 1 if we're the first connection
+            if not self.conns:
+                conn.ready(1)
 
         except NSQException as error:
             msg = '[{}] connection failed ({!r})'.format(conn, error)
