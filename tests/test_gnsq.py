@@ -8,12 +8,10 @@ test_gnsq
 Tests for `gnsq` module.
 """
 
-import unittest
-
-from gnsq import nsq
+# from gnsq import Nsqd
 
 
-class TestGnsq(unittest.TestCase):
+class TestGnsq(object):
 
     def setUp(self):
         pass
@@ -23,6 +21,3 @@ class TestGnsq(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-if __name__ == '__main__':
-    unittest.main()

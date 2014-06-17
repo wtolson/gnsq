@@ -5,14 +5,31 @@ import os
 import sys
 
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
+from setuptools.command.test import test as TestCommand
 
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
+
+
+class PyTest(TestCommand):
+    user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.pytest_args = None
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.pytest_args)# or ['-x', 'tests'])
+        sys.exit(errno)
 
 
 setup(
@@ -35,5 +52,6 @@ setup(
     classifiers=[
         'License :: OSI Approved :: MIT License',
     ],
-    test_suite='tests',
+    tests_require=['pytest'],
+    cmdclass={'test': PyTest},
 )

@@ -2,5 +2,7 @@
 -e .
 
 # Install our development requirements
-ipython
+flake8
+pytest
 python-snappy
+tox
