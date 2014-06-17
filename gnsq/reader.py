@@ -91,10 +91,6 @@ class Reader(object):
         self.conn_workers = {}
         self.state = INIT
 
-    @property
-    def is_running(self):
-        self.state in (RUNNING, BACKOFF, THROTTLED)
-
     def start(self, block=True):
         if not self.start == INIT:
             return
@@ -130,6 +126,11 @@ class Reader(object):
         gevent.joinall(self.workers, timeout, raise_error)
         gevent.joinall(self.conn_workers.values(), timeout, raise_error)
 
+    @property
+    def is_running(self):
+        self.state in (RUNNING, BACKOFF, THROTTLED)
+
+    @property
     def is_starved(self):
         for conn in self.conns:
             if conn.in_flight >= max(conn.last_ready * 0.85, 1):
@@ -178,6 +179,32 @@ class Reader(object):
 
     def create_backoff(self):
         return BackoffTimer(max_interval=self.max_backoff_duration)
+
+    def start_backoff(self):
+        self.state = BACKOFF
+
+        for conn in self.conns:
+            conn.ready(0)
+
+        interval = self.backoff.get_interval()
+        self.logger.info('backing off for {} seconds'.format(interval))
+        gevent.sleep(interval)
+
+        self.state = THROTTLED
+        if not self.conns:
+            return
+
+        conn = self.random_connection()
+        self.logger.info('[{}] testing backoff state with RDY 1'.format(conn))
+        self.send_ready(conn, 1)
+
+    def complete_backoff(self):
+        self.state = RUNNING
+        self.logger.info('backoff complete, resuming normal operation')
+
+        count = self.connection_max_in_flight
+        for conn in self.conns.values():
+            self.send_ready(conn, count)
 
     def _poll_lookupd(self):
         delay = self.lookupd_poll_interval * self.lookupd_poll_jitter
@@ -431,33 +458,5 @@ class Reader(object):
         if self.state == THROTTLED and self.backoff.is_reset():
             return self.complete_backoff()
 
-        if self.backoff.is_reset():
-            return
-
-        self.start_backoff()
-
-    def start_backoff(self):
-        self.state = BACKOFF
-
-        for conn in self.conns:
-            conn.ready(0)
-
-        interval = self.backoff.get_interval()
-        self.logger.info('backing off for {} seconds'.format(interval))
-        gevent.sleep(interval)
-
-        self.state = THROTTLED
-        if not self.conns:
-            return
-
-        conn = self.random_connection()
-        self.logger.info('[{}] testing backoff state with RDY 1'.format(conn))
-        self.send_ready(conn, 1)
-
-    def complete_backoff(self):
-        self.state = RUNNING
-        self.logger.info('backoff complete, resuming normal operation')
-
-        count = self.connection_max_in_flight
-        for conn in self.conns.values():
-            self.send_ready(conn, count)
+        if not self.backoff.is_reset():
+            return self.start_backoff()
