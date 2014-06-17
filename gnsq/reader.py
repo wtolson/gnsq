@@ -4,9 +4,11 @@ import gevent
 import blinker
 
 from itertools import cycle
+from collections import defaultdict
 
 from .lookupd import Lookupd
 from .nsqd import Nsqd
+from .backofftimer import BackoffTimer
 
 from .errors import (
     NSQException,
@@ -37,16 +39,18 @@ class Reader(object):
         if isinstance(nsqd_tcp_addresses, basestring):
             self.nsqd_tcp_addresses = [nsqd_tcp_addresses]
         elif isinstance(nsqd_tcp_addresses, (list, tuple)):
-            self.nsqd_tcp_addresses = nsqd_tcp_addresses
+            self.nsqd_tcp_addresses = set(nsqd_tcp_addresses)
         else:
-            raise TypeError('nsqd_tcp_addresses must be a list or tuple')
+            raise TypeError('nsqd_tcp_addresses must be a list, set or tuple')
 
         if isinstance(lookupd_http_addresses, basestring):
             lookupd_http_addresses = [lookupd_http_addresses]
         elif isinstance(lookupd_http_addresses, (list, tuple)):
+            lookupd_http_addresses = list(lookupd_http_addresses)
             random.shuffle(lookupd_http_addresses)
         else:
-            raise TypeError('lookupd_http_addresses must be a list or tuple')
+            msg = 'lookupd_http_addresses must be a list, set or tuple'
+            raise TypeError(msg)
 
         self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
         self.iterlookupds = cycle(self.lookupds)
@@ -59,8 +63,10 @@ class Reader(object):
         self.requeue_delay = requeue_delay
         self.lookupd_poll_interval = lookupd_poll_interval
         self.lookupd_poll_jitter = lookupd_poll_jitter
+        self.max_backoff_duration = max_backoff_duration
 
         self.logger = logging.getLogger(__name__)
+        self.backofftimers = defaultdict(self.create_backoff)
 
         self.on_response = blinker.Signal()
         self.on_error = blinker.Signal()
@@ -116,6 +122,9 @@ class Reader(object):
                 producer['http_port']
             )
             self.connect_to_nsqd(conn)
+
+    def create_backoff(self):
+        return BackoffTimer(max_interval=self.max_backoff_duration)
 
     def _poll(self):
         delay = self.lookupd_poll_interval * self.lookupd_poll_jitter
@@ -206,6 +215,7 @@ class Reader(object):
         except NSQException as error:
             msg = '[{}] connection failed ({!r})'.format(conn, error)
             self.logger.debug(msg)
+            self.handle_connection_failure(conn)
             return
 
         finally:
@@ -215,6 +225,7 @@ class Reader(object):
         conn.worker = gevent.spawn(self._listen, conn)
 
         self.logger.info('[{}] connection successful'.format(conn))
+        self.handle_connection_success(conn)
 
     def _listen(self, conn):
         try:
@@ -223,8 +234,23 @@ class Reader(object):
             msg = '[{}] connection lost ({!r})'.format(conn, error)
             self.logger.warning(msg)
 
-        self.conns.remove(conn)
-        conn.kill()  # FIXME
+        self.handle_connection_failure(conn)
+
+    def handle_connection_failure(self, conn):
+        self.conns.discard(conn)
+        conn.close_stream()
+
+        if str(conn) not in self.nsqd_tcp_addresses:
+            return
+
+        seconds = self.backofftimers[str(conn)].failure().get_interval()
+        self.logger.debug('[{}] retrying in {}s'.format(conn, seconds))
+        gevent.spawn_later(seconds, self.connect_to_nsqd, conn)
+
+    def handle_connection_success(self, conn):
+        if str(conn) not in self.nsqd_tcp_addresses:
+            return
+        self.backofftimers[str(conn)].success()
 
     def handle_response(self, conn, response):
         self.logger.debug('[{}] response: {}'.format(conn, response))
