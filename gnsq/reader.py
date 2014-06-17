@@ -71,9 +71,10 @@ class Reader(object):
         self.total_ready_count = 0
         self._need_ready_redistributed = False
         self.last_random_ready = time.time()
+        self.state = INIT
 
         self.logger = logging.getLogger(__name__)
-        self.backofftimers = defaultdict(self.create_backoff)
+        self.conn_backoffs = defaultdict(self.create_backoff)
         self.backoff = self.create_backoff()
 
         self.on_response = blinker.Signal()
@@ -89,7 +90,6 @@ class Reader(object):
 
         self.workers = []
         self.conn_workers = {}
-        self.state = INIT
 
     def start(self, block=True):
         if not self.start == INIT:
@@ -382,7 +382,7 @@ class Reader(object):
         if str(conn) not in self.nsqd_tcp_addresses:
             return
 
-        self.backofftimers[conn].success()
+        self.conn_backoffs[conn].success()
 
     def handle_connection_failure(self, conn):
         self.conns.discard(conn)
@@ -395,7 +395,7 @@ class Reader(object):
         if str(conn) not in self.nsqd_tcp_addresses:
             return
 
-        seconds = self.backofftimers[conn].failure().get_interval()
+        seconds = self.conn_backoffs[conn].failure().get_interval()
         self.logger.debug('[{}] retrying in {}s'.format(conn, seconds))
         gevent.spawn_later(seconds, self.connect_to_nsqd, conn)
 
