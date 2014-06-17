@@ -78,11 +78,39 @@ class Reader(object):
         self.conns = set()
         self.pending = set()
 
-    def start(self):
+        self.workers = []
+        self.conn_workers = {}
+        self.closed = True
+
+    def start(self, block=True):
+        self.closed = False
         self.query_nsqd()
-        self.query_lookupd()
-        self._poll()  # spawn poll only if we have lookupds
-        # TODO: run _redistribute_rdy_state
+
+        if self.lookupds:
+            self.query_lookupd()
+            self.workers.append(gevent.spawn(self._poll_lookupd))
+
+        # TODO
+        # self.workers.append(gevent.spawn(self._redistribute_rdy_state))
+
+        if block:
+            self.join()
+
+    def close(self, block=True):
+        self.closed = True
+
+        for worker in self.workers:
+            worker.kill(block=block)
+
+        for conn in self.conns:
+            conn.close_stream()
+
+        if block:
+            self.join()
+
+    def join(self, timeout=None, raise_error=False):
+        gevent.joinall(self.workers, timeout, raise_error)
+        gevent.joinall(self.conn_workers.values(), timeout, raise_error)
 
     def connection_max_in_flight(self):
         return max(1, self.max_in_flight / max(1, len(self.conns)))
@@ -101,9 +129,6 @@ class Reader(object):
             self.connect_to_nsqd(conn)
 
     def query_lookupd(self):
-        if not self.lookupds:
-            return
-
         self.logger.debug('querying lookupd...')
         lookupd = self.iterlookupds.next()
 
@@ -126,11 +151,11 @@ class Reader(object):
     def create_backoff(self):
         return BackoffTimer(max_interval=self.max_backoff_duration)
 
-    def _poll(self):
+    def _poll_lookupd(self):
         delay = self.lookupd_poll_interval * self.lookupd_poll_jitter
         gevent.sleep(random.random() * delay)
 
-        while 1:
+        while True:
             gevent.sleep(self.lookupd_poll_interval)
             self.query_nsqd()
             self.query_lookupd()
@@ -148,6 +173,9 @@ class Reader(object):
         conn.publish(topic, message)
 
     def connect_to_nsqd(self, conn):
+        if self.closed:
+            return
+
         if conn in self.conns:
             self.logger.debug('[{}] already connected'.format(conn))
             return
@@ -191,8 +219,10 @@ class Reader(object):
         finally:
             self.pending.remove(conn)
 
-        self.conns.add(conn)
-        conn.worker = gevent.spawn(self._listen, conn)
+        # Check if we've closed since we started
+        if self.closed:
+            conn.close_stream()
+            return
 
         self.logger.info('[{}] connection successful'.format(conn))
         self.handle_connection_success(conn)
@@ -206,21 +236,26 @@ class Reader(object):
 
         self.handle_connection_failure(conn)
 
+    def handle_connection_success(self, conn):
+        self.conns.add(conn)
+        self.conn_workers[conn] = gevent.spawn(self._listen, conn)
+
+        if str(conn) not in self.nsqd_tcp_addresses:
+            return
+
+        self.backofftimers[conn].success()
+
     def handle_connection_failure(self, conn):
         self.conns.discard(conn)
+        self.conn_workers.pop(conn, None)
         conn.close_stream()
 
         if str(conn) not in self.nsqd_tcp_addresses:
             return
 
-        seconds = self.backofftimers[str(conn)].failure().get_interval()
+        seconds = self.backofftimers[conn].failure().get_interval()
         self.logger.debug('[{}] retrying in {}s'.format(conn, seconds))
         gevent.spawn_later(seconds, self.connect_to_nsqd, conn)
-
-    def handle_connection_success(self, conn):
-        if str(conn) not in self.nsqd_tcp_addresses:
-            return
-        self.backofftimers[str(conn)].success()
 
     def handle_response(self, conn, response):
         self.logger.debug('[{}] response: {}'.format(conn, response))
@@ -274,12 +309,3 @@ class Reader(object):
             timeout=timeout
         )
         self.update_ready(conn)
-
-    def close(self):
-        for conn in self.conns:
-            conn.close()
-
-    def join(self, timeout=None, raise_error=False):
-        # FIXME
-        workers = [c._send_worker for c in self.conns if c._send_worker]
-        gevent.joinall(workers, timeout, raise_error)
