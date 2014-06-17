@@ -1,4 +1,4 @@
-from random import randint
+import random
 
 
 class BackoffTimer(object):
@@ -26,7 +26,7 @@ class BackoffTimer(object):
 
     def get_interval(self):
         k = pow(2, self.c) - 1
-        interval = randint(0, k) * self.ratio
+        interval = random.random() * k * self.ratio
 
         if self.max_interval is not None:
             interval = min(interval, self.max_interval)
