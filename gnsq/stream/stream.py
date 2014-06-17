@@ -38,11 +38,11 @@ class Stream(object):
         self.state = INIT
 
     @property
-    def connected(self):
+    def is_connected(self):
         return self.state == CONNECTED
 
     def ensure_connection(self):
-        if self.connected:
+        if self.is_connected:
             return
         raise NSQSocketError(ENOTCONN, 'Socket is not connected')
 
@@ -97,7 +97,7 @@ class Stream(object):
         return data
 
     def close(self):
-        if not self.connected:
+        if not self.is_connected:
             return
 
         self.state = DISCONNECTED
@@ -106,7 +106,7 @@ class Stream(object):
 
     def send_loop(self):
         for data, result in self.queue:
-            if not self.connected:
+            if not self.is_connected:
                 error = NSQSocketError(ENOTCONN, 'Socket is not connected')
                 result.set_exception(error)
 

@@ -68,7 +68,6 @@ class Reader(object):
         self.low_ready_idle_timeout = low_ready_idle_timeout
         self.max_backoff_duration = max_backoff_duration
 
-        self.total_ready_count = 0
         self._need_ready_redistributed = False
         self.last_random_ready = time.time()
         self.state = INIT
@@ -92,7 +91,7 @@ class Reader(object):
         self.conn_workers = {}
 
     def start(self, block=True):
-        if not self.start == INIT:
+        if not self.state == INIT:
             return
 
         self.state = RUNNING
@@ -128,7 +127,7 @@ class Reader(object):
 
     @property
     def is_running(self):
-        self.state in (RUNNING, BACKOFF, THROTTLED)
+        return self.state in (RUNNING, BACKOFF, THROTTLED)
 
     @property
     def is_starved(self):
@@ -163,6 +162,7 @@ class Reader(object):
 
         try:
             producers = lookupd.lookup(self.topic)['producers']
+            self.logger.debug('found {} producers'.format(len(producers)))
 
         except Exception as error:
             msg = 'Failed to lookup {} on {} ({})'

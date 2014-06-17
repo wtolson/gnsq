@@ -81,7 +81,7 @@ class Nsqd(HTTPClient):
         }
 
     @property
-    def connected(self):
+    def is_connected(self):
         return self.state == CONNECTED
 
     def connect(self):
@@ -156,7 +156,7 @@ class Nsqd(HTTPClient):
         self.in_flight -= 1
 
     def listen(self):
-        while self.connected:
+        while self.is_connected:
             self.read_response()
 
     def upgrade_to_tls(self):
@@ -366,13 +366,13 @@ class Nsqd(HTTPClient):
         return self._json_api(self.url('info'))
 
     def publish(self, topic, data):
-        if self.connected:
+        if self.is_connected:
             return self.publish_tcp(topic, data)
         else:
             return self.publish_http(topic, data)
 
     def multipublish(self, topic, messages):
-        if self.connected:
+        if self.is_connected:
             return self.multipublish_tcp(topic, messages)
         else:
             return self.multipublish_http(topic, messages)
