@@ -86,13 +86,26 @@ def unpack_message(data):
 #
 # Commands
 #
+def _packsize(data):
+    return struct.pack('>l', len(data))
+
+
 def _packbody(body):
     if body is None:
         return ''
-    return struct.pack('>l', len(body)) + body
+    if not isinstance(body, str):
+        raise TypeError('message body must be a byte string')
+    return _packsize(body) + body
+
+
+def _encode_param(data):
+    if not isinstance(data, unicode):
+        return data
+    return data.encode('utf-8')
 
 
 def _command(cmd, body, *params):
+    params = tuple(_encode_param(p) for p in params)
     return ''.join((' '.join((cmd,) + params), NEWLINE, _packbody(body)))
 
 
@@ -114,7 +127,7 @@ def publish(topic_name, data):
 def multipublish(topic_name, messages):
     assert_valid_topic_name(topic_name)
     data = ''.join(_packbody(m) for m in messages)
-    return _command('MPUB', data, topic_name)
+    return _command('MPUB', _packsize(messages) + data, topic_name)
 
 
 def ready(count):
