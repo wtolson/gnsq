@@ -9,6 +9,9 @@ class BackoffTimer(object):
         self.max_interval = max_interval
         self.min_interval = min_interval
 
+    def is_reset(self):
+        return self.c == 0
+
     def reset(self):
         self.c = 0
         return self

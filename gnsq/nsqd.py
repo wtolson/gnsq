@@ -1,4 +1,5 @@
 import blinker
+import time
 from gevent import socket
 
 try:
@@ -59,10 +60,12 @@ class Nsqd(HTTPClient):
         self.user_agent = user_agent
 
         self.state = INIT
+        self.last_ressponse = time.time()
+        self.last_message = time.time()
         self.last_ready = 0
         self.ready_count = 0
         self.in_flight = 0
-        self.max_rdy_count = 2500
+        self.max_ready_count = 2500
 
         self.on_response = blinker.Signal()
         self.on_error = blinker.Signal()
@@ -115,6 +118,7 @@ class Nsqd(HTTPClient):
     def read_response(self):
         response = self._read_response()
         frame, data = nsq.unpack_response(response)
+        self.last_response = time.time()
 
         if frame not in self._frame_handlers:
             raise errors.NSQFrameError('unknown frame {}'.format(frame))
@@ -141,6 +145,7 @@ class Nsqd(HTTPClient):
         return error
 
     def handle_message(self, data):
+        self.last_message = time.time()
         self.ready_count -= 1
         self.in_flight += 1
         message = Message(self, *nsq.unpack_message(data))
@@ -210,7 +215,7 @@ class Nsqd(HTTPClient):
             msg = 'failed to parse IDENTIFY response JSON from nsqd: {!r}'
             raise errors.NSQException(msg.format(data))
 
-        self.max_rdy_count = data.get('max_rdy_count', self.max_rdy_count)
+        self.max_ready_count = data.get('max_rdy_count', self.max_ready_count)
 
         if self.tls_v1 and data.get('tls_v1'):
             self.upgrade_to_tls()
