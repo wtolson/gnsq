@@ -1,41 +1,28 @@
-
+import pytest
 
 from gnsq import BackoffTimer
 from gnsq import protocal as nsq
 
 
-TOPICS = [
+@pytest.mark.parametrize('name,good', [
     ('valid_name', True),
     ('invalid name with space', False),
     ('invalid_name_due_to_length_this_is_really_really_really_long', False),
     ('test-with_period.', True),
     ('test#ephemeral', False),
     ('test:ephemeral', False),
-]
+])
+def test_topic_names(name, good):
+    assert nsq.valid_topic_name(name) == good
 
-CHANNELS = [
+
+@pytest.mark.parametrize('name,good', [
     ('test', True),
     ('test-with_period.', True),
     ('test#ephemeral', True),
     ('invalid_name_due_to_length_this_is_really_really_really_long', False),
     ('invalid name with space', False),
-]
-
-
-def pytest_generate_tests(metafunc):
-    if metafunc.function == test_topic_names:
-        for name, good in TOPICS:
-            metafunc.addcall(funcargs=dict(name=name, good=good))
-
-    if metafunc.function == test_channel_names:
-        for name, good in CHANNELS:
-            metafunc.addcall(funcargs=dict(name=name, good=good))
-
-
-def test_topic_names(name, good):
-    assert nsq.valid_topic_name(name) == good
-
-
+])
 def test_channel_names(name, good):
     assert nsq.valid_channel_name(name) == good
 
