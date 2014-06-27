@@ -1,5 +1,7 @@
 from __future__ import with_statement
+
 import struct
+import pytest
 
 from gevent.event import AsyncResult
 from gevent.server import StreamServer
@@ -35,6 +37,7 @@ def test_connection():
     @nsqd_handler
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
+        assert socket.recv(1) == ''
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -47,8 +50,12 @@ def test_connection():
         assert conn.state == states.DISCONNECTED
 
 
-def test_read():
-    body = 'hello world'
+@pytest.mark.parametrize('body', [
+    'hello world',
+    '',
+    '{"some": "json data"}',
+])
+def test_read(body):
 
     @nsqd_handler
     def handle(socket, address):
