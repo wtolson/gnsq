@@ -3,7 +3,7 @@ Contributing
 ============
 
 Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given. 
+little bit helps, and credit will always be given.
 
 You can contribute in many ways:
 
@@ -36,7 +36,7 @@ is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-gnsq could always use more documentation, whether as part of the 
+gnsq could always use more documentation, whether as part of the
 official gnsq docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
@@ -66,21 +66,21 @@ Ready to contribute? Here's how to set up `gnsq` for local development.
 
     $ mkvirtualenv gnsq
     $ cd gnsq/
-    $ python setup.py develop
+    $ pip install -r requirements.txt
 
 4. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
-   
+
    Now you can make your changes locally.
 
 5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox::
 
     $ flake8 gnsq tests
-    $ python setup.py test
+    $ py.test
     $ tox
 
-   To get flake8 and tox, just pip install them into your virtualenv. 
+   To get flake8 and tox, just pip install them into your virtualenv.
 
 6. Commit your changes and push your branch to GitHub::
 
@@ -108,4 +108,4 @@ Tips
 
 To run a subset of tests::
 
-	$ python -m unittest tests.test_gnsq
+	$ py.test tests/test_basic.py
