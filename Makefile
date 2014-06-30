@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: clean-pyc clean-build clean-docs docs clean
 
 help:
 	@echo "clean-build - remove build artifacts"
@@ -11,7 +11,7 @@ help:
 	@echo "release - package and upload a release"
 	@echo "dist - package"
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-docs
 	rm -fr htmlcov/
 
 clean-build:
@@ -20,9 +20,15 @@ clean-build:
 	rm -fr *.egg-info
 
 clean-pyc:
-	find . -name '*.pyc' -exec rm -f {} +
-	find . -name '*.pyo' -exec rm -f {} +
-	find . -name '*~' -exec rm -f {} +
+	find . -type f -name "*.py[co]" -delete
+	find . -type f -name '*~' -delete
+	find . -type d -name "__pycache__" -delete
+
+clean-docs:
+	rm -f docs/gnsq.rst
+	rm -f docs/gnsq.stream.rst
+	rm -f docs/modules.rst
+	$(MAKE) -C docs clean
 
 lint:
 	flake8 gnsq tests
@@ -39,11 +45,8 @@ coverage:
 	coverage html
 	open htmlcov/index.html
 
-docs:
-	rm -f docs/gnsq.rst
-	rm -f docs/modules.rst
+docs: clean-docs
 	sphinx-apidoc -o docs/ gnsq
-	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
 
