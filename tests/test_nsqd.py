@@ -4,11 +4,10 @@ import struct
 import json
 import pytest
 
-from gevent.event import AsyncResult
-from gevent.server import StreamServer
-
-from gnsq import Nsqd, Message, states
+from gnsq import Nsqd, Message, states, errors
 from gnsq import protocal as nsq
+
+from mock_server import mock_server
 
 
 def mock_response(frame_type, data):
@@ -26,33 +25,9 @@ def mock_response_message(timestamp, attempts, id, body):
     return mock_response(nsq.FRAME_TYPE_MESSAGE, data)
 
 
-class nsqd_handler(object):
-    def __init__(self, handler):
-        self.handler = handler
-        self.result = AsyncResult()
-        self.server = StreamServer(('127.0.0.1', 0), self)
-
-    def __call__(self, socket, address):
-        try:
-            self.result.set(self.handler(socket, address))
-        except Exception as error:
-            self.result.set_exception(error)
-        finally:
-            socket.close()
-
-    def __enter__(self):
-        self.server.start()
-        return self.server
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is None:
-            self.result.get()
-        self.server.stop()
-
-
 def test_connection():
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
         assert socket.recv(1) == ''
@@ -75,7 +50,7 @@ def test_connection():
 ])
 def test_read(body):
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         socket.send(struct.pack('>l', len(body)))
         socket.send(body)
@@ -90,7 +65,7 @@ def test_read(body):
 
 def test_identify():
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
         assert socket.recv(9) == 'IDENTIFY\n'
@@ -110,7 +85,7 @@ def test_identify():
 
 def test_negotiation():
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
         assert socket.recv(9) == 'IDENTIFY\n'
@@ -147,7 +122,7 @@ def test_negotiation():
 ])
 def test_command(command, args, resp):
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
         assert socket.recv(len(resp)) == resp
@@ -158,9 +133,40 @@ def test_command(command, args, resp):
         getattr(conn, command)(*args)
 
 
+@pytest.mark.parametrize('error,error_class,fatal', [
+    ('E_INVALID', errors.NSQInvalid, True),
+    ('E_BAD_BODY', errors.NSQBadBody, True),
+    ('E_BAD_TOPIC', errors.NSQBadTopic, True),
+    ('E_BAD_CHANNEL', errors.NSQBadChannel, True),
+    ('E_BAD_MESSAGE', errors.NSQBadMessage, True),
+    ('E_PUT_FAILED', errors.NSQPutFailed, True),
+    ('E_PUB_FAILED', errors.NSQPubFailed, True),
+    ('E_MPUB_FAILED', errors.NSQMPubFailed, True),
+    ('E_FIN_FAILED', errors.NSQFinishFailed, False),
+    ('E_REQ_FAILED', errors.NSQRequeueFailed, False),
+    ('E_TOUCH_FAILED', errors.NSQTouchFailed, False),
+    ('unknown error', errors.NSQException, True),
+])
+def test_error(error, error_class, fatal):
+
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error))
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+
+        frame, resp = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_ERROR
+        assert isinstance(resp, error_class)
+        assert conn.is_connected != fatal
+
+
 def test_sync_receive_messages():
 
-    @nsqd_handler
+    @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
         assert socket.recv(9) == 'IDENTIFY\n'
