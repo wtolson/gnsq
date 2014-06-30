@@ -35,6 +35,7 @@ class Reader(object):
         lookupd_poll_jitter=0.3,
         low_ready_idle_timeout=10,
         max_backoff_duration=128,
+        **kwargs
     ):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
             raise ValueError('must specify at least on nsqd or lookupd')
@@ -68,6 +69,7 @@ class Reader(object):
         self.lookupd_poll_jitter = lookupd_poll_jitter
         self.low_ready_idle_timeout = low_ready_idle_timeout
         self.max_backoff_duration = max_backoff_duration
+        self.conn_kwargs = kwargs
 
         if name:
             self.name = name
@@ -159,7 +161,7 @@ class Reader(object):
         self.logger.debug('querying nsqd...')
         for address in self.nsqd_tcp_addresses:
             address, port = address.split(':')
-            conn = Nsqd(address, int(port))
+            conn = Nsqd(address, int(port), **self.conn_kwargs)
             self.connect_to_nsqd(conn)
 
     def query_lookupd(self):
@@ -179,7 +181,8 @@ class Reader(object):
             conn = Nsqd(
                 producer.get('broadcast_address') or producer['address'],
                 producer['tcp_port'],
-                producer['http_port']
+                producer['http_port'],
+                **self.conn_kwargs
             )
             self.connect_to_nsqd(conn)
 
