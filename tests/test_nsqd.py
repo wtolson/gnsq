@@ -164,6 +164,15 @@ def test_error(error, error_class, fatal):
         assert conn.is_connected != fatal
 
 
+def test_hashing():
+    conn1 = Nsqd('localhost', 1337)
+    conn2 = Nsqd('localhost', 1337)
+    assert conn1 == conn2
+
+    test = {conn1: True}
+    assert conn2 in test
+
+
 def test_sync_receive_messages():
 
     @mock_server
