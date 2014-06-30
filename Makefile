@@ -28,13 +28,13 @@ lint:
 	flake8 gnsq tests
 
 test:
-	py.test tests
+	py.test
 
 test-all:
 	tox
 
 coverage:
-	coverage run --source gnsq setup.py test
+	coverage run --source gnsq py.test
 	coverage report -m
 	coverage html
 	open htmlcov/index.html

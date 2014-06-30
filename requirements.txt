@@ -6,3 +6,4 @@ flake8
 pytest
 python-snappy
 tox
+wheel>=0.22

@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'gnsq'
-copyright = u'2014, William Trevor Olson'
+copyright = u'2014, Trevor Olson'
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -210,7 +210,7 @@ latex_elements = {
 latex_documents = [
     ('index', 'gnsq.tex',
      u'gnsq Documentation',
-     u'William Trevor Olson', 'manual'),
+     u'Trevor Olson', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -241,7 +241,7 @@ latex_documents = [
 man_pages = [
     ('index', 'gnsq',
      u'gnsq Documentation',
-     [u'William Trevor Olson'], 1)
+     [u'Trevor Olson'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -256,7 +256,7 @@ man_pages = [
 texinfo_documents = [
     ('index', 'gnsq',
      u'gnsq Documentation',
-     u'William Trevor Olson',
+     u'Trevor Olson',
      'gnsq',
      'One line description of project.',
      'Miscellaneous'),
