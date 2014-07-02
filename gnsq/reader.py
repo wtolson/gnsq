@@ -409,11 +409,11 @@ class Reader(object):
 
     def handle_response(self, conn, response):
         self.logger.debug('[{}] response: {}'.format(conn, response))
-        self.on_response.send(self, conn=conn, response=response)
+        self.on_response.send(self, response=response)
 
     def handle_error(self, conn, error):
         self.logger.debug('[{}] error: {}'.format(conn, error))
-        self.on_error.send(self, conn=conn, error=error)
+        self.on_error.send(self, error=error)
 
     def handle_message(self, conn, message):
         self.logger.debug('[{}] got message: {}'.format(conn, message.id))
@@ -426,7 +426,7 @@ class Reader(object):
             return message.finish()
 
         try:
-            self.on_message.send(self, conn=conn, message=message)
+            self.on_message.send(self, message=message)
             if not self.async:
                 message.finish()
             return
@@ -437,12 +437,7 @@ class Reader(object):
         except Exception as error:
             msg = '[{}] caught exception while handling message'.format(conn)
             self.logger.exception(msg)
-            self.on_exception.send(
-                self,
-                conn=conn,
-                message=message,
-                error=error,
-            )
+            self.on_exception.send(self, message=message, error=error)
 
         message.requeue(self.requeue_delay)
 
@@ -450,19 +445,14 @@ class Reader(object):
         self.logger.debug('[{}] finished message: {}'.format(conn, message_id))
         self.backoff.success()
         self.handle_backoff()
-        self.on_finish.send(self, conn=conn, message_id=message_id)
+        self.on_finish.send(self, message_id=message_id)
 
     def handle_requeue(self, conn, message_id, timeout):
         msg = '[{}] requeued message: {} ({})'
         self.logger.debug(msg.format(conn, message_id, timeout))
         self.backoff.failure()
         self.handle_backoff()
-        self.on_requeue.send(
-            self,
-            conn=conn,
-            message_id=message_id,
-            timeout=timeout
-        )
+        self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def handle_backoff(self):
         if self.state == BACKOFF:

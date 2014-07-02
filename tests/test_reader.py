@@ -30,14 +30,14 @@ def test_messages():
         )
 
         @reader.on_exception.connect
-        def error_handler(reader, conn, message, error):
+        def error_handler(reader, message, error):
             if isinstance(error, NSQSocketError):
                 return
             Accounting.error = error
             reader.close()
 
         @reader.on_message.connect
-        def handler(reader, conn, message):
+        def handler(reader, message):
             assert message.body == 'danger zone!'
 
             Accounting.count += 1
