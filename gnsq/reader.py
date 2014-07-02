@@ -211,7 +211,7 @@ class Reader(object):
         self.logger.info('backoff complete, resuming normal operation')
 
         count = self.connection_max_in_flight
-        for conn in self.conns.values():
+        for conn in self.conns:
             self.send_ready(conn, count)
 
     def _poll_lookupd(self):
