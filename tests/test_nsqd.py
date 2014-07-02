@@ -6,8 +6,10 @@ import pytest
 
 from gnsq import Nsqd, Message, states, errors
 from gnsq import protocal as nsq
+from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
 
 from mock_server import mock_server
+from integration_server import IntegrationNsqdServer
 
 
 def mock_response(frame_type, data):
@@ -26,7 +28,6 @@ def mock_response_message(timestamp, attempts, id, body):
 
 
 def test_connection():
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -49,7 +50,6 @@ def test_connection():
     '{"some": "json data"}',
 ])
 def test_read(body):
-
     @mock_server
     def handle(socket, address):
         socket.send(struct.pack('>l', len(body)))
@@ -64,7 +64,6 @@ def test_read(body):
 
 
 def test_identify():
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -84,7 +83,6 @@ def test_identify():
 
 
 def test_negotiation():
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -121,7 +119,6 @@ def test_negotiation():
     ('nop', (), 'NOP\n'),
 ])
 def test_command(command, args, resp):
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -148,7 +145,6 @@ def test_command(command, args, resp):
     ('unknown error', errors.NSQException, True),
 ])
 def test_error(error, error_class, fatal):
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -174,7 +170,6 @@ def test_hashing():
 
 
 def test_sync_receive_messages():
-
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
@@ -219,3 +214,66 @@ def test_sync_receive_messages():
             assert msg.id == '%016d' % i
             assert msg.attempts == i
             assert json.loads(msg.body)['data']['test_key'] == i
+
+
+@pytest.mark.slow
+def test_tls():
+    with IntegrationNsqdServer() as server:
+        print {
+            'keyfile': server.tls_key,
+            'certfile': server.tls_cert,
+        }
+        conn = Nsqd(
+            address='127.0.0.1',
+            tcp_port=server.port,
+            tls_v1=True,
+            tls_options={
+                'keyfile': server.tls_key,
+                'certfile': server.tls_cert,
+            }
+        )
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['tls_v1'] is True
+        assert isinstance(conn.stream.socket, SSLSocket)
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+
+@pytest.mark.slow
+def test_deflate():
+    with IntegrationNsqdServer() as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.port, deflate=True)
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['deflate'] is True
+        assert isinstance(conn.stream.socket, DefalteSocket)
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+
+@pytest.mark.slow
+def test_snappy():
+    with IntegrationNsqdServer() as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.port, snappy=True)
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['snappy'] is True
+        assert isinstance(conn.stream.socket, SnappySocket)
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
