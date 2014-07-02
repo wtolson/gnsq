@@ -281,7 +281,7 @@ class Reader(object):
         # have had RDY 1 because it would be overly complicated and not actually
         # worth it (ie. given enough redistribution rounds it doesn't matter).
         conns = list(self.conns)
-        conns = random.sample(conns, min(max_in_flight, len(self.conn)))
+        conns = random.sample(conns, min(max_in_flight, len(self.conns)))
 
         for conn in conns:
             self.logger.info('[{}] redistributing RDY'.format(conn))
