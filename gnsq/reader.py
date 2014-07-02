@@ -116,20 +116,17 @@ class Reader(object):
         if block:
             self.join()
 
-    def close(self, block=True):
+    def close(self):
         if not self.is_running:
             return
 
         self.state = CLOSED
 
         for worker in self.workers:
-            worker.kill(block=block)
+            worker.kill()
 
         for conn in self.conns:
             conn.close_stream()
-
-        if block:
-            self.join()
 
     def join(self, timeout=None, raise_error=False):
         gevent.joinall(self.workers, timeout, raise_error)
@@ -440,7 +437,12 @@ class Reader(object):
         except Exception as error:
             msg = '[{}] caught exception while handling message'.format(conn)
             self.logger.exception(msg)
-            self.on_exception(self, conn=conn, message=message, error=error)
+            self.on_exception.send(
+                self,
+                conn=conn,
+                message=message,
+                error=error,
+            )
 
         message.requeue(self.requeue_delay)
 
