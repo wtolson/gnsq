@@ -219,13 +219,9 @@ def test_sync_receive_messages():
 @pytest.mark.slow
 def test_tls():
     with IntegrationNsqdServer() as server:
-        print {
-            'keyfile': server.tls_key,
-            'certfile': server.tls_cert,
-        }
         conn = Nsqd(
-            address='127.0.0.1',
-            tcp_port=server.port,
+            address=server.address,
+            tcp_port=server.tcp_port,
             tls_v1=True,
             tls_options={
                 'keyfile': server.tls_key,
@@ -248,7 +244,11 @@ def test_tls():
 @pytest.mark.slow
 def test_deflate():
     with IntegrationNsqdServer() as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.port, deflate=True)
+        conn = Nsqd(
+            address=server.address,
+            tcp_port=server.tcp_port,
+            deflate=True
+        )
         conn.connect()
         assert conn.state == states.CONNECTED
 
@@ -265,7 +265,11 @@ def test_deflate():
 @pytest.mark.slow
 def test_snappy():
     with IntegrationNsqdServer() as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.port, snappy=True)
+        conn = Nsqd(
+            address=server.address,
+            tcp_port=server.tcp_port,
+            snappy=True
+        )
         conn.connect()
         assert conn.state == states.CONNECTED
 

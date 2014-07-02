@@ -36,6 +36,9 @@ lint:
 test:
 	py.test
 
+test-slow:
+	py.test --runslow
+
 test-all:
 	tox
 

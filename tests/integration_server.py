@@ -11,19 +11,29 @@ class IntegrationNsqdServer(object):
     tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
     tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
 
-    def __init__(self, port=None):
-        if port is None:
-            port = random.randint(10000, 65535)
-        self.port = port
+    def __init__(self, address=None, tcp_port=None, http_port=None):
+        if address is None:
+            address = '127.0.0.1'
+
+        if tcp_port is None:
+            tcp_port = random.randint(10000, 65535)
+            tcp_port = 1234
+
+        if http_port is None:
+            http_port = tcp_port + 1
+
+        self.address = address
+        self.tcp_port = tcp_port
+        self.http_port = http_port
         self.data_path = tempfile.mkdtemp()
 
     @property
     def tcp_address(self):
-        return '127.0.0.1:{}'.format(self.port)
+        return '{}:{}'.format(self.address, self.tcp_port)
 
     @property
     def http_address(self):
-        return '127.0.0.1:{}'.format(self.port + 1)
+        return '{}:{}'.format(self.address, self.http_port)
 
     def is_running(self):
         try:
@@ -38,24 +48,18 @@ class IntegrationNsqdServer(object):
                 break
             time.sleep(0.1)
 
-    def __enter__(self):
-        print 'running:', ' '.join([
+    def cmd(self):
+        return [
             'nsqd',
-            '--tcp-address={}'.format(self.tcp_address),
-            '--http-address={}'.format(self.http_address),
-            '--data-path={}'.format(self.data_path),
-            '--tls-cert={}'.format(self.tls_cert),
-            '--tls-key={}'.format(self.tls_key),
-        ])
+            '--tcp-address', self.tcp_address,
+            '--http-address', self.http_address,
+            '--data-path', self.data_path,
+            '--tls-cert', self.tls_cert,
+            '--tls-key', self.tls_key,
+        ]
 
-        self.nsqd = subprocess.Popen([
-            'nsqd',
-            '--tcp-address={}'.format(self.tcp_address),
-            '--http-address={}'.format(self.http_address),
-            '--data-path={}'.format(self.data_path),
-            '--tls-cert={}'.format(self.tls_cert),
-            '--tls-key={}'.format(self.tls_key),
-        ])
+    def __enter__(self):
+        self.nsqd = subprocess.Popen(self.cmd())
         self.wait()
         return self
 
