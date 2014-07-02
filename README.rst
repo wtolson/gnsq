@@ -17,11 +17,6 @@ A gevent based NSQ driver for Python.
 * Free software: BSD license
 * Documentation: http://gnsq.readthedocs.org.
 
-Features
---------
-
-* TODO
-
 Installation
 ------------
 
@@ -29,7 +24,7 @@ At the command line::
 
     $ easy_install gnsq
 
-Or, if you have virtualenvwrapper installed::
+Or even better, if you have virtualenvwrapper installed::
 
     $ mkvirtualenv gnsq
     $ pip install gnsq
@@ -40,3 +35,10 @@ Usage
 To use gnsq in a project::
 
     import gnsq
+    reader = gnsq.Reader('topic', 'channel', 'localhost:4150')
+
+    @reader.on_message.connect
+    def handler(reader, message):
+        do_work(message.body)
+
+    reader.start()
