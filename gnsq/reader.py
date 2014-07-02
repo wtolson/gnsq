@@ -99,9 +99,11 @@ class Reader(object):
         self.conn_workers = {}
 
     def start(self, block=True):
-        if not self.state == INIT:
+        if self.state != INIT:
+            self.logger.debug('{} all ready started'.format(self.name))
             return
 
+        self.logger.debug('starting {}...'.format(self.name))
         self.state = RUNNING
         self.query_nsqd()
 
