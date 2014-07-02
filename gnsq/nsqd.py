@@ -96,6 +96,9 @@ class Nsqd(HTTPClient):
         self.send(nsq.MAGIC_V2)
 
     def close_stream(self):
+        if not self.is_connected:
+            return
+
         self.stream.close()
         self.state = DISCONNECTED
         self.on_close.send(self)
