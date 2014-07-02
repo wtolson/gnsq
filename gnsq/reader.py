@@ -265,9 +265,9 @@ class Reader(object):
             conn.ready(0)
 
         if self.state == THROTTLED:
-            max_in_flight = 1 - self.total_ready
+            max_in_flight = 1 - self.total_ready_count
         else:
-            max_in_flight = self.max_in_flight - self.total_ready
+            max_in_flight = self.max_in_flight - self.total_ready_count
 
         if max_in_flight <= 0:
             return
