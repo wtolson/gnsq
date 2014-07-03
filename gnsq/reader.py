@@ -209,10 +209,7 @@ class Reader(object):
     def complete_backoff(self):
         self.state = RUNNING
         self.logger.info('backoff complete, resuming normal operation')
-
-        count = self.connection_max_in_flight
-        for conn in self.conns:
-            self.send_ready(conn, count)
+        self.redistribute_ready_state()
 
     def _poll_lookupd(self):
         delay = self.lookupd_poll_interval * self.lookupd_poll_jitter
