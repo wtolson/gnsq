@@ -353,8 +353,8 @@ class Reader(object):
 
             conn.subscribe(self.topic, self.channel)
 
-            # Send RDY 1 if we're not backing off and we're the first connection
-            if self.state not in (BACKOFF, THROTTLED) and not self.conns:
+            # Send RDY 1 if we're not backing off or we're the first connection
+            if self.state != BACKOFF or not self.conns:
                 self.send_ready(conn, 1)
 
         except NSQException as error:
