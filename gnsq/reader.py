@@ -151,9 +151,26 @@ class Reader(object):
     def total_ready_count(self):
         return sum(c.ready_count for c in self.conns)
 
+    @property
+    def total_in_flight(self):
+        return sum(c.in_flight for c in self.conns)
+
+    @property
+    def total_in_flight_or_ready(self):
+        return self.total_in_flight + self.total_ready_count
+
     def send_ready(self, conn, count):
-        if (self.total_ready_count + count) > self.max_in_flight:
+        if self.state == BACKOFF:
             return
+
+        if self.state == THROTTLED and self.total_in_flight_or_ready:
+            return
+
+        if (self.total_in_flight_or_ready + count) > self.max_in_flight:
+            if not (conn.ready_count or conn.in_flight):
+                gevent.spawn_later(5, self.send_ready, conn, count)
+            return
+
         conn.ready(count)
 
     def query_nsqd(self):
@@ -265,9 +282,9 @@ class Reader(object):
             conn.ready(0)
 
         if self.state == THROTTLED:
-            max_in_flight = 1 - self.total_ready_count
+            max_in_flight = 1 - self.total_in_flight_or_ready
         else:
-            max_in_flight = self.max_in_flight - self.total_ready_count
+            max_in_flight = self.max_in_flight - self.total_in_flight_or_ready
 
         if max_in_flight <= 0:
             return
@@ -352,10 +369,7 @@ class Reader(object):
                 ]).format(conn, conn.max_ready_count, self.max_in_flight))
 
             conn.subscribe(self.topic, self.channel)
-
-            # Send RDY 1 if we're not backing off or we're the first connection
-            if self.state != BACKOFF or not self.conns:
-                self.send_ready(conn, 1)
+            self.send_ready(conn, 1)
 
         except NSQException as error:
             msg = '[{}] connection failed ({!r})'.format(conn, error)
