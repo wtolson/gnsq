@@ -417,7 +417,6 @@ class Reader(object):
 
     def handle_message(self, conn, message):
         self.logger.debug('[{}] got message: {}'.format(conn, message.id))
-        self.update_ready(conn)
 
         if self.max_tries and message.attempts > self.max_tries:
             msg = "giving up on message '{}' after max tries {}"
@@ -444,6 +443,7 @@ class Reader(object):
     def handle_finish(self, conn, message_id):
         self.logger.debug('[{}] finished message: {}'.format(conn, message_id))
         self.backoff.success()
+        self.update_ready(conn)
         self.handle_backoff()
         self.on_finish.send(self, message_id=message_id)
 
@@ -451,6 +451,7 @@ class Reader(object):
         msg = '[{}] requeued message: {} ({})'
         self.logger.debug(msg.format(conn, message_id, timeout))
         self.backoff.failure()
+        self.update_ready(conn)
         self.handle_backoff()
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
