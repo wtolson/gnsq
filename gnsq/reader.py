@@ -392,6 +392,8 @@ class Reader(object):
         try:
             conn.listen()
         except NSQException as error:
+            if self.state == CLOSED:
+                return
             msg = '[{}] connection lost ({!r})'.format(conn, error)
             self.logger.warning(msg)
 
