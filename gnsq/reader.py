@@ -100,7 +100,7 @@ class Reader(object):
 
     def start(self, block=True):
         if self.state != INIT:
-            self.logger.debug('{} all ready started'.format(self.name))
+            self.logger.warn('{} all ready started'.format(self.name))
             return
 
         self.logger.debug('starting {}...'.format(self.name))
