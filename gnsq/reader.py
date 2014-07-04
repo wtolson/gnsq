@@ -27,6 +27,7 @@ class Reader(object):
         nsqd_tcp_addresses=[],
         lookupd_http_addresses=[],
         name=None,
+        message_handler=None,
         async=False,
         max_tries=5,
         max_in_flight=1,
@@ -91,6 +92,9 @@ class Reader(object):
         self.on_requeue = blinker.Signal()
         self.on_giving_up = blinker.Signal()
         self.on_exception = blinker.Signal()
+
+        if message_handler is not None:
+            self.on_message.connect(message_handler)
 
         self.conns = set()
         self.pending = set()
