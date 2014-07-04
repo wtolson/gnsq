@@ -43,10 +43,11 @@ class IntegrationNsqdServer(object):
             return False
 
     def wait(self):
-        while True:
+        for attempt in xrange(10):
             if self.is_running():
-                break
-            time.sleep(0.1)
+                return
+            time.sleep(0.01 * pow(2, attempt))
+        raise RuntimeError('unable to start nsqd')
 
     def cmd(self):
         return [
