@@ -437,7 +437,7 @@ class Reader(object):
         if self.max_tries and message.attempts > self.max_tries:
             msg = "giving up on message '{}' after max tries {}"
             self.logger.warning(msg.format(message.id, self.max_tries))
-            self.on_giving_up.send(self, conn, message)
+            self.on_giving_up.send(self, message=message)
             return message.finish()
 
         try:
