@@ -6,6 +6,8 @@ import time
 
 from itertools import cycle
 from collections import defaultdict
+from multiprocessing import cpu_count
+from gevent.queue import Queue
 
 from .lookupd import Lookupd
 from .nsqd import Nsqd
@@ -31,6 +33,7 @@ class Reader(object):
         async=False,
         max_tries=5,
         max_in_flight=1,
+        max_concurrency=0,
         requeue_delay=0,
         lookupd_poll_interval=60,
         lookupd_poll_jitter=0.3,
@@ -41,22 +44,11 @@ class Reader(object):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
             raise ValueError('must specify at least on nsqd or lookupd')
 
-        if isinstance(nsqd_tcp_addresses, basestring):
-            self.nsqd_tcp_addresses = [nsqd_tcp_addresses]
-        elif isinstance(nsqd_tcp_addresses, (list, tuple)):
-            self.nsqd_tcp_addresses = set(nsqd_tcp_addresses)
-        else:
-            raise TypeError('nsqd_tcp_addresses must be a list, set or tuple')
+        nsqd_tcp_addresses = self._get_nsqds(nsqd_tcp_addresses)
+        lookupd_http_addresses = self._get_lookupds(lookupd_http_addresses)
+        random.shuffle(lookupd_http_addresses)
 
-        if isinstance(lookupd_http_addresses, basestring):
-            lookupd_http_addresses = [lookupd_http_addresses]
-        elif isinstance(lookupd_http_addresses, (list, tuple)):
-            lookupd_http_addresses = list(lookupd_http_addresses)
-            random.shuffle(lookupd_http_addresses)
-        else:
-            msg = 'lookupd_http_addresses must be a list, set or tuple'
-            raise TypeError(msg)
-
+        self.nsqd_tcp_addresses = nsqd_tcp_addresses
         self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
         self.iterlookupds = cycle(self.lookupds)
 
@@ -65,6 +57,7 @@ class Reader(object):
         self.async = async
         self.max_tries = max_tries
         self.max_in_flight = max_in_flight
+        self.max_concurrency = max_concurrency
         self.requeue_delay = requeue_delay
         self.lookupd_poll_interval = lookupd_poll_interval
         self.lookupd_poll_jitter = lookupd_poll_jitter
@@ -96,11 +89,39 @@ class Reader(object):
         if message_handler is not None:
             self.on_message.connect(message_handler)
 
+        if max_concurrency < 0:
+            max_concurrency = cpu_count()
+
+        if max_concurrency:
+            self.queue = Queue()
+        else:
+            self.queue = None
+
         self.conns = set()
         self.pending = set()
 
         self.workers = []
         self.conn_workers = {}
+
+    def _get_nsqds(self, nsqd_tcp_addresses):
+        if isinstance(nsqd_tcp_addresses, basestring):
+            return set([nsqd_tcp_addresses])
+
+        elif isinstance(nsqd_tcp_addresses, (list, tuple, set)):
+            return set(nsqd_tcp_addresses)
+
+        raise TypeError('nsqd_tcp_addresses must be a list, set or tuple')
+
+    def _get_lookupds(self, lookupd_http_addresses):
+        if isinstance(lookupd_http_addresses, basestring):
+            return [lookupd_http_addresses]
+
+        elif isinstance(lookupd_http_addresses, (list, tuple)):
+            lookupd_http_addresses = list(lookupd_http_addresses)
+            return lookupd_http_addresses
+
+        msg = 'lookupd_http_addresses must be a list, set or tuple'
+        raise TypeError(msg)
 
     def start(self, block=True):
         if self.state != INIT:
@@ -116,6 +137,9 @@ class Reader(object):
             self.workers.append(gevent.spawn(self._poll_lookupd))
 
         self.workers.append(gevent.spawn(self._poll_ready))
+
+        for _ in xrange(self.max_concurrency):
+            self.workers.append(gevent.spawn(self._run))
 
         if block:
             self.join()
@@ -356,9 +380,13 @@ class Reader(object):
 
         conn.on_response.connect(self.handle_response)
         conn.on_error.connect(self.handle_error)
-        conn.on_message.connect(self.handle_message)
         conn.on_finish.connect(self.handle_finish)
         conn.on_requeue.connect(self.handle_requeue)
+
+        if self.max_concurrency:
+            conn.on_message.connect(self.queue_message)
+        else:
+            conn.on_message.connect(self.handle_message)
 
         self.pending.add(conn)
 
@@ -402,6 +430,14 @@ class Reader(object):
             self.logger.warning(msg)
 
         self.handle_connection_failure(conn)
+
+    def _run(self):
+        for conn, message in self.queue:
+            self.handle_message(conn, message)
+
+    def queue_message(self, conn, message):
+        self.logger.debug('[{}] queueing message: {}'.format(conn, message.id))
+        self.queue.put((conn, message))
 
     def handle_connection_success(self, conn):
         self.conns.add(conn)
