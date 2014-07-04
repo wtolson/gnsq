@@ -160,7 +160,7 @@ class Reader(object):
         return self.total_in_flight + self.total_ready_count
 
     def send_ready(self, conn, count):
-        if self.state == BACKOFF:
+        if self.state in (BACKOFF, CLOSED):
             return
 
         if self.state == THROTTLED and self.total_in_flight_or_ready:
@@ -442,7 +442,7 @@ class Reader(object):
 
         try:
             self.on_message.send(self, message=message)
-            if not self.async:
+            if self.is_running and not self.async:
                 message.finish()
             return
 
@@ -454,7 +454,8 @@ class Reader(object):
             self.logger.exception(msg)
             self.on_exception.send(self, message=message, error=error)
 
-        message.requeue(self.requeue_delay)
+        if self.is_running:
+            message.requeue(self.requeue_delay)
 
     def handle_finish(self, conn, message_id):
         self.logger.debug('[{}] finished message: {}'.format(conn, message_id))
@@ -472,7 +473,7 @@ class Reader(object):
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def handle_backoff(self):
-        if self.state == BACKOFF:
+        if self.state in (BACKOFF, CLOSED):
             return
 
         if self.state == THROTTLED and self.backoff.is_reset():
