@@ -14,7 +14,9 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   quickstart
+   reader
+   nsqd
+   lookupd
    contributing
    authors
    history
