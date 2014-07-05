@@ -36,10 +36,11 @@ setup(
     zip_safe=False,
     keywords='gnsq',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
     ]
 )

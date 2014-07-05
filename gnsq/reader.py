@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 import random
 import gevent
@@ -68,7 +70,7 @@ class Reader(object):
         if name:
             self.name = name
         else:
-            self.name = '{}.{}.{}'.format(__name__, self.topic, self.channel)
+            self.name = '%s.%s.%s' % (__name__, self.topic, self.channel)
 
         self._need_ready_redistributed = False
         self.last_random_ready = time.time()
@@ -125,10 +127,10 @@ class Reader(object):
 
     def start(self, block=True):
         if self.state != INIT:
-            self.logger.warn('{} all ready started'.format(self.name))
+            self.logger.warn('%s all ready started' % self.name)
             return
 
-        self.logger.debug('starting {}...'.format(self.name))
+        self.logger.debug('starting %s...' % self.name)
         self.state = RUNNING
         self.query_nsqd()
 
@@ -214,11 +216,11 @@ class Reader(object):
 
         try:
             producers = lookupd.lookup(self.topic)['producers']
-            self.logger.debug('found {} producers'.format(len(producers)))
+            self.logger.debug('found %d producers' % len(producers))
 
         except Exception as error:
-            msg = 'Failed to lookup {} on {} ({})'
-            self.logger.warn(msg.format(self.topic, lookupd.address, error))
+            msg = 'Failed to lookup %s on %s (%s)'
+            self.logger.warn(msg % (self.topic, lookupd.address, error))
             return
 
         for producer in producers:
@@ -240,7 +242,7 @@ class Reader(object):
             conn.ready(0)
 
         interval = self.backoff.get_interval()
-        self.logger.info('backing off for {} seconds'.format(interval))
+        self.logger.info('backing off for %s seconds' % interval)
         gevent.sleep(interval)
 
         self.state = THROTTLED
@@ -248,7 +250,7 @@ class Reader(object):
             return
 
         conn = self.random_connection()
-        self.logger.info('[{}] testing backoff state with RDY 1'.format(conn))
+        self.logger.info('[%s] testing backoff state with RDY 1' % conn)
         self.send_ready(conn, 1)
 
     def complete_backoff(self):
@@ -304,9 +306,7 @@ class Reader(object):
             if (time.time() - conn.last_message) < self.low_ready_idle_timeout:
                 continue
 
-            msg = '[{}] idle connection, giving up RDY count'.format(conn)
-            self.logger.info(msg)
-
+            self.logger.info('[%s] idle connection, giving up RDY count' % conn)
             conn.ready(0)
 
         if self.state == THROTTLED:
@@ -329,7 +329,7 @@ class Reader(object):
         conns = random.sample(conns, min(max_in_flight, len(self.conns)))
 
         for conn in conns:
-            self.logger.info('[{}] redistributing RDY'.format(conn))
+            self.logger.info('[%s] redistributing RDY' % conn)
             self.send_ready(conn, 1)
 
     def random_ready_conn(self, conn):
@@ -369,14 +369,14 @@ class Reader(object):
             return
 
         if conn in self.conns:
-            self.logger.debug('[{}] already connected'.format(conn))
+            self.logger.debug('[%s] already connected' % conn)
             return
 
         if conn in self.pending:
-            self.logger.debug('[{}] already pending'.format(conn))
+            self.logger.debug('[%s] already pending' % conn)
             return
 
-        self.logger.debug('[{}] connecting...'.format(conn))
+        self.logger.debug('[%s] connecting...' % conn)
 
         conn.on_response.connect(self.handle_response)
         conn.on_error.connect(self.handle_error)
@@ -395,17 +395,22 @@ class Reader(object):
             conn.identify()
 
             if conn.max_ready_count < self.max_in_flight:
-                self.logger.warning(' '.join([
-                    '[{}] max RDY count {} < reader max in flight {},',
+                msg = ' '.join([
+                    '[%s] max RDY count %d < reader max in flight %d,',
                     'truncation possible'
-                ]).format(conn, conn.max_ready_count, self.max_in_flight))
+                ])
+
+                self.logger.warning(msg % (
+                    conn,
+                    conn.max_ready_count,
+                    self.max_in_flight
+                ))
 
             conn.subscribe(self.topic, self.channel)
             self.send_ready(conn, 1)
 
         except NSQException as error:
-            msg = '[{}] connection failed ({!r})'.format(conn, error)
-            self.logger.debug(msg)
+            self.logger.debug('[%s] connection failed (%r)' % (conn, error))
             self.handle_connection_failure(conn)
             return
 
@@ -417,7 +422,7 @@ class Reader(object):
             conn.close_stream()
             return
 
-        self.logger.info('[{}] connection successful'.format(conn))
+        self.logger.info('[%s] connection successful' % conn)
         self.handle_connection_success(conn)
 
     def _listen(self, conn):
@@ -426,8 +431,7 @@ class Reader(object):
         except NSQException as error:
             if self.state == CLOSED:
                 return
-            msg = '[{}] connection lost ({!r})'.format(conn, error)
-            self.logger.warning(msg)
+            self.logger.warning('[%s] connection lost (%r)' % (conn, error))
 
         self.handle_connection_failure(conn)
 
@@ -436,7 +440,7 @@ class Reader(object):
             self.handle_message(conn, message)
 
     def queue_message(self, conn, message):
-        self.logger.debug('[{}] queueing message: {}'.format(conn, message.id))
+        self.logger.debug('[%s] queueing message: %s' % (conn, message.id))
         self.queue.put((conn, message))
 
     def handle_connection_success(self, conn):
@@ -460,23 +464,23 @@ class Reader(object):
             return
 
         seconds = self.conn_backoffs[conn].failure().get_interval()
-        self.logger.debug('[{}] retrying in {}s'.format(conn, seconds))
+        self.logger.debug('[%s] retrying in %ss' % (conn, seconds))
         gevent.spawn_later(seconds, self.connect_to_nsqd, conn)
 
     def handle_response(self, conn, response):
-        self.logger.debug('[{}] response: {}'.format(conn, response))
+        self.logger.debug('[%s] response: %s' % (conn, response))
         self.on_response.send(self, response=response)
 
     def handle_error(self, conn, error):
-        self.logger.debug('[{}] error: {}'.format(conn, error))
+        self.logger.debug('[%s] error: %s' % (conn, error))
         self.on_error.send(self, error=error)
 
     def handle_message(self, conn, message):
-        self.logger.debug('[{}] got message: {}'.format(conn, message.id))
+        self.logger.debug('[%s] got message: %s' % (conn, message.id))
 
         if self.max_tries and message.attempts > self.max_tries:
-            msg = "giving up on message '{}' after max tries {}"
-            self.logger.warning(msg.format(message.id, self.max_tries))
+            msg = "giving up on message '%s' after max tries %d"
+            self.logger.warning(msg % (message.id, self.max_tries))
             self.on_giving_up.send(self, message=message)
             return message.finish()
 
@@ -490,7 +494,7 @@ class Reader(object):
             pass
 
         except Exception as error:
-            msg = '[{}] caught exception while handling message'.format(conn)
+            msg = '[%s] caught exception while handling message' % conn
             self.logger.exception(msg)
             self.on_exception.send(self, message=message, error=error)
 
@@ -498,15 +502,15 @@ class Reader(object):
             message.requeue(self.requeue_delay)
 
     def handle_finish(self, conn, message_id):
-        self.logger.debug('[{}] finished message: {}'.format(conn, message_id))
+        self.logger.debug('[%s] finished message: %s' % (conn, message_id))
         self.backoff.success()
         self.update_ready(conn)
         self.handle_backoff()
         self.on_finish.send(self, message_id=message_id)
 
     def handle_requeue(self, conn, message_id, timeout):
-        msg = '[{}] requeued message: {} ({})'
-        self.logger.debug(msg.format(conn, message_id, timeout))
+        msg = '[%s] requeued message: %s (%s)'
+        self.logger.debug(msg % (conn, message_id, timeout))
         self.backoff.failure()
         self.update_ready(conn)
         self.handle_backoff()

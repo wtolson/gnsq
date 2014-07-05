@@ -29,15 +29,15 @@ class IntegrationNsqdServer(object):
 
     @property
     def tcp_address(self):
-        return '{}:{}'.format(self.address, self.tcp_port)
+        return '%s:%d' % (self.address, self.tcp_port)
 
     @property
     def http_address(self):
-        return '{}:{}'.format(self.address, self.http_port)
+        return '%s:%d' % (self.address, self.http_port)
 
     def is_running(self):
         try:
-            resp = requests.get('http://{}/ping'.format(self.http_address))
+            resp = requests.get('http://%s/ping' % self.http_address)
             return resp.text == 'OK'
         except requests.ConnectionError:
             return False

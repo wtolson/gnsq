@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import blinker
 import time
 from gevent import socket
@@ -18,7 +20,7 @@ from .version import __version__
 
 HOSTNAME = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
-USERAGENT = 'gnsq/{}'.format(__version__)
+USERAGENT = 'gnsq/%s' % __version__
 
 
 class Nsqd(HTTPClient):
@@ -124,7 +126,7 @@ class Nsqd(HTTPClient):
         self.last_response = time.time()
 
         if frame not in self._frame_handlers:
-            raise errors.NSQFrameError('unknown frame {}'.format(frame))
+            raise errors.NSQFrameError('unknown frame %d' % frame)
 
         frame_handler = self._frame_handlers[frame]
         processed_data = frame_handler(data)
@@ -215,8 +217,8 @@ class Nsqd(HTTPClient):
 
         except ValueError:
             self.close_stream()
-            msg = 'failed to parse IDENTIFY response JSON from nsqd: {!r}'
-            raise errors.NSQException(msg.format(data))
+            msg = 'failed to parse IDENTIFY response JSON from nsqd: %r'
+            raise errors.NSQException(msg % data)
 
         self.max_ready_count = data.get('max_rdy_count', self.max_ready_count)
 
@@ -267,7 +269,7 @@ class Nsqd(HTTPClient):
 
     @property
     def base_url(self):
-        return 'http://{}:{}/'.format(self.address, self.http_port)
+        return 'http://%s:%s/' % (self.address, self.http_port)
 
     def _check_connection(self):
         if self.http_port:
