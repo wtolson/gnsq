@@ -27,6 +27,17 @@ from .errors import (
 class Reader(object):
     """High level NSQ consumer.
 
+    A Reader will connect to the nsqd tcp addresses or poll the provided
+    nsqlookupd http addresses for the configured topic and send signals to
+    message handlers connected to the `on_message` signal or provided by
+    `message_handler`.
+
+    Messages will automatically be finished when the message handle returns
+    unless the readers `async` flag is set to `True`. If an exception occurs or
+    :class:`gnsq.errors.NSQRequeueMessage` is raised, the message will be requeued.
+
+    The Reader will handle backing off of failed messages up to a configurable
+    `max_interval` as well as automatically reconnecting to dropped connections.
 
     **Signals:**
 

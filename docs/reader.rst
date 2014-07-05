@@ -1,5 +1,5 @@
-:class:`Reader` -- high-level consumer
---------------------------------------
+Reader: high-level consumer
+---------------------------
 
 .. autoclass:: gnsq.Reader
   :members:
