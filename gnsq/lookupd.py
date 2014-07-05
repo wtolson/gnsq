@@ -5,6 +5,10 @@ from . import protocal as nsq
 
 
 class Lookupd(HTTPClient):
+    """Low level client for nsqlookupd.
+
+    :param address: nsqlookupd http address (default: http://localhost:4161/)
+    """
     def __init__(self, address='http://localhost:4161/'):
         if not address.endswith('/'):
             address += '/'
@@ -12,6 +16,7 @@ class Lookupd(HTTPClient):
         self.address = self.base_url = address
 
     def lookup(self, topic):
+        """Returns producers for a topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('lookup'),
@@ -19,9 +24,11 @@ class Lookupd(HTTPClient):
         )
 
     def topics(self):
+        """Returns all known topics."""
         return self._json_api(self.url('topics'))
 
     def channels(self, topic):
+        """Returns all known channels of a topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('channels'),
@@ -29,9 +36,11 @@ class Lookupd(HTTPClient):
         )
 
     def nodes(self):
+        """Returns all known nsqd."""
         return self._json_api(self.url('nodes'))
 
     def delete_topic(self, topic):
+        """Deletes an existing topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('delete_topic'),
@@ -39,6 +48,7 @@ class Lookupd(HTTPClient):
         )
 
     def delete_channel(self, topic, channel):
+        """Deletes an existing channel of an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -47,6 +57,7 @@ class Lookupd(HTTPClient):
         )
 
     def tombstone_topic_producer(self, topic, node):
+        """Tombstones a specific producer of an existing topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('tombstone_topic_producer'),
@@ -54,7 +65,12 @@ class Lookupd(HTTPClient):
         )
 
     def ping(self):
+        """Monitoring endpoint.
+
+        :returns: should return `"OK"`, otherwise raises an exception.
+        """
         return self._check_api(self.url('ping'))
 
     def info(self):
+        """Returns version information."""
         return self._json_api(self.url('info'))
