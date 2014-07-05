@@ -85,9 +85,11 @@ class Nsqd(HTTPClient):
 
     @property
     def is_connected(self):
+        """Check if the client is currently connected."""
         return self.state == CONNECTED
 
     def connect(self):
+        """Initialize connection to the nsqd."""
         if self.state not in (INIT, DISCONNECTED):
             return
 
@@ -99,6 +101,7 @@ class Nsqd(HTTPClient):
         self.send(nsq.MAGIC_V2)
 
     def close_stream(self):
+        """Close the underlying socket."""
         if not self.is_connected:
             return
 
@@ -122,6 +125,11 @@ class Nsqd(HTTPClient):
             raise
 
     def read_response(self):
+        """Read an individual response from nsqd.
+
+        :returns: tuple of the frame type and the processed data.
+        """
+
         response = self._read_response()
         frame, data = nsq.unpack_response(response)
         self.last_response = time.time()
@@ -162,6 +170,7 @@ class Nsqd(HTTPClient):
         self.in_flight -= 1
 
     def listen(self):
+        """Listen to incoming responses until the connection closes."""
         while self.is_connected:
             self.read_response()
 
@@ -175,6 +184,11 @@ class Nsqd(HTTPClient):
         self.stream.upgrade_to_defalte(self.deflate_level)
 
     def identify(self):
+        """Send the clients `IDENTIFY` command to nsqd.
+
+        :returns: nsqd response data if there was feature negotiation,
+            otherwise `None`
+        """
         self.send(nsq.identify({
             # nsqd <0.2.28
             'short_id': self.client_id,
@@ -236,36 +250,45 @@ class Nsqd(HTTPClient):
         return data
 
     def subscribe(self, topic, channel):
+        """Subscribe to a nsq `topic` and `channel`."""
         self.send(nsq.subscribe(topic, channel))
 
     def publish_tcp(self, topic, data):
+        """Publish a message to the given topic over tcp."""
         self.send(nsq.publish(topic, data))
 
     def multipublish_tcp(self, topic, messages):
+        """Publish an iterable of messages to the given topic over tcp."""
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
+        """Indicate you are ready to receive `count` messages."""
         self.last_ready = count
         self.ready_count = count
         self.send(nsq.ready(count))
 
     def finish(self, message_id):
+        """Finish a message (indicate successful processing)."""
         self.send(nsq.finish(message_id))
         self.finish_inflight()
         self.on_finish.send(self, message_id=message_id)
 
     def requeue(self, message_id, timeout=0):
+        """Re-queue a message (indicate failure to process)."""
         self.send(nsq.requeue(message_id, timeout))
         self.finish_inflight()
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def touch(self, message_id):
+        """Reset the timeout for an in-flight message."""
         self.send(nsq.touch(message_id))
 
     def close(self):
+        """Indicate no more messages should be sent."""
         self.send(nsq.close())
 
     def nop(self):
+        """Send no-op to nsqd. Used to keep connection alive."""
         self.send(nsq.nop())
 
     @property
@@ -278,6 +301,7 @@ class Nsqd(HTTPClient):
         raise errors.NSQException(-1, 'no http port')
 
     def publish_http(self, topic, data):
+        """Publish a message to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
         return self._check_api(
             self.url('put'),
@@ -286,6 +310,7 @@ class Nsqd(HTTPClient):
         )
 
     def multipublish_http(self, topic, messages):
+        """Publish an iterable of messages to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
 
         for message in messages:
@@ -302,6 +327,7 @@ class Nsqd(HTTPClient):
         )
 
     def create_topic(self, topic):
+        """Create a topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('create_topic'),
@@ -309,6 +335,7 @@ class Nsqd(HTTPClient):
         )
 
     def delete_topic(self, topic):
+        """Delete a topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('delete_topic'),
@@ -316,6 +343,7 @@ class Nsqd(HTTPClient):
         )
 
     def create_channel(self, topic, channel):
+        """Create a channel for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -324,6 +352,7 @@ class Nsqd(HTTPClient):
         )
 
     def delete_channel(self, topic, channel):
+        """Delete an existing channel for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -332,6 +361,7 @@ class Nsqd(HTTPClient):
         )
 
     def empty_topic(self, topic):
+        """Empty all the queued messages for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         return self._json_api(
             self.url('empty_topic'),
@@ -339,6 +369,7 @@ class Nsqd(HTTPClient):
         )
 
     def empty_channel(self, topic, channel):
+        """Empty all the queued messages for an existing channel."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -347,6 +378,10 @@ class Nsqd(HTTPClient):
         )
 
     def pause_channel(self, topic, channel):
+        """Pause message flow to all channels on an existing topic.
+
+        Messages will queue at topic.
+        """
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -355,6 +390,7 @@ class Nsqd(HTTPClient):
         )
 
     def unpause_channel(self, topic, channel):
+        """Resume message flow to channels of an existing, paused, topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._json_api(
@@ -363,21 +399,37 @@ class Nsqd(HTTPClient):
         )
 
     def stats(self):
+        """Return internal instrumented statistics."""
         return self._json_api(self.url('stats'), params={'format': 'json'})
 
     def ping(self):
+        """Monitoring endpoint.
+
+        :returns: should return `"OK"`, otherwise raises an exception.
+        """
         return self._check_api(self.url('ping'))
 
     def info(self):
+        """Returns version information."""
         return self._json_api(self.url('info'))
 
     def publish(self, topic, data):
+        """Publish a message.
+
+        If connected, the message will be sent over tcp. Otherwise it will
+        fall back to http.
+        """
         if self.is_connected:
             return self.publish_tcp(topic, data)
         else:
             return self.publish_http(topic, data)
 
     def multipublish(self, topic, messages):
+        """Publish an iterable of messages in one roundtrip.
+
+        If connected, the messages will be sent over tcp. Otherwise it will
+        fall back to http.
+        """
         if self.is_connected:
             return self.multipublish_tcp(topic, messages)
         else:
