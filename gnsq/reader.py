@@ -25,6 +25,102 @@ from .errors import (
 
 
 class Reader(object):
+    """High level NSQ consumer.
+
+
+    **Signals:**
+
+    .. data:: on_message(reader, message)
+        :noindex:
+
+        Sent when the reader receives a message. The `message_handler` param is
+        connected to this signal.
+
+    .. data:: on_finish(reader, message_id)
+        :noindex:
+
+        Sent when a message is successfully finished.
+
+    .. data:: on_requeue(reader, message_id, timeout)
+        :noindex:
+
+        Sent when a message is has been requeued.
+
+    .. data:: on_giving_up(reader, message)
+        :noindex:
+
+        Sent when a message has exceeded the maximum number of attempts
+        (`max_tries`) and will no longer be requeued.
+
+    .. data:: on_response(reader, response)
+        :noindex:
+
+        Sent when the reader receives a response frame from a connection.
+
+    .. data:: on_error(reader, error)
+        :noindex:
+
+        Sent when the reader receives an error frame from a connection.
+
+    .. data:: on_exception(reader, message, error)
+        :noindex:
+
+        Sent when an exception is caught while handling a message.
+
+
+    :param topic: specifies the desired NSQ topic
+
+    :param channel: specifies the desired NSQ channel
+
+    :param nsqd_tcp_addresses: a sequence of string addresses of the nsqd
+        instances this reader should connect to
+
+    :param lookupd_http_addresses: a sequence of string addresses of the
+        nsqlookupd instances this reader should query for producers of the
+        specified topic
+
+    :param name: a string that is used for logging messages (defaults to
+        'gnsq.reader.topic.channel')
+
+    :param message_handler: the callable that will be executed for each message
+        received
+
+    :param async: consider the message handling to be async. The message will
+        not automatically be finished after the handler returns and must
+        manually be called
+
+    :param max_tries: the maximum number of attempts the reader will make to
+        process a message after which messages will be automatically discarded
+
+    :param max_in_flight: the maximum number of messages this reader will
+        pipeline for processing. this value will be divided evenly amongst the
+        configured/discovered nsqd producers
+
+    :param max_concurrency: the maximum number of messages that will be handled
+        concurrently. Defaults to the number of nsqd connections. Setting
+        `max_concurrency` to `-1` will use the systems cpu count.
+
+    :param requeue_delay: the default delay to use when requeueing a failed
+        message
+
+    :param lookupd_poll_interval: the amount of time in seconds between querying
+        all of the supplied nsqlookupd instances.  a random amount of time based
+        on thie value will be initially introduced in order to add jitter when
+        multiple readers are running
+
+    :param lookupd_poll_jitter: The maximum fractional amount of jitter to add
+        to the lookupd pool loop. This helps evenly distribute requests even if
+        multiple consumers restart at the same time.
+
+    :param low_ready_idle_timeout: the amount of time in seconds to wait for a
+        message from a producer when in a state where RDY counts are
+        re-distributed (ie. max_in_flight < num_producers)
+
+    :param max_backoff_duration: the maximum time we will allow a backoff state
+        to last in seconds
+
+    :param \*\*kwargs: passed to :class:`gnsq.Nsqd` initialization
+    """
     def __init__(
         self,
         topic,
@@ -127,6 +223,7 @@ class Reader(object):
         raise TypeError(msg)
 
     def start(self, block=True):
+        """Start discovering and listing to connections."""
         if self.state != INIT:
             self.logger.warn('%s all ready started' % self.name)
             return
@@ -148,6 +245,7 @@ class Reader(object):
             self.join()
 
     def close(self):
+        """Immediately close all connections and stop workers."""
         if not self.is_running:
             return
 
@@ -160,15 +258,18 @@ class Reader(object):
             conn.close_stream()
 
     def join(self, timeout=None, raise_error=False):
+        """Block until all connections have closed and workers stopped."""
         gevent.joinall(self.workers, timeout, raise_error)
         gevent.joinall(self.conn_workers.values(), timeout, raise_error)
 
     @property
     def is_running(self):
+        """Check if reader is currently running."""
         return self.state in (RUNNING, BACKOFF, THROTTLED)
 
     @property
     def is_starved(self):
+        """Check if reader is currently starved for messages."""
         for conn in self.conns:
             if conn.in_flight >= max(conn.last_ready * 0.85, 1):
                 return True
@@ -359,6 +460,7 @@ class Reader(object):
         return random.choice(list(self.conns))
 
     def publish(self, topic, message):
+        """Publish a message to a random connection."""
         conn = self.random_connection()
         if conn is None:
             raise NSQNoConnections()
