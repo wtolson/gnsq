@@ -17,6 +17,7 @@ Contents
    reader
    nsqd
    lookupd
+   message
    signals
    contributing
    authors
