@@ -31,8 +31,8 @@ class Nsqd(HTTPClient):
         tcp_port=4150,
         http_port=4151,
         timeout=60.0,
-        client_id=SHORTNAME,
-        hostname=HOSTNAME,
+        client_id=None,
+        hostname=None,
         heartbeat_interval=30,
         output_buffer_size=16 * 1024,
         output_buffer_timeout=250,
@@ -49,8 +49,8 @@ class Nsqd(HTTPClient):
         self.http_port = http_port
         self.timeout = timeout
 
-        self.client_id = client_id
-        self.hostname = hostname
+        self.client_id = client_id or SHORTNAME
+        self.hostname = hostname or HOSTNAME
         self.heartbeat_interval = 1000 * heartbeat_interval
         self.output_buffer_size = output_buffer_size
         self.output_buffer_timeout = output_buffer_timeout
