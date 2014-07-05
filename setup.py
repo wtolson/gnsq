@@ -10,12 +10,6 @@ except ImportError:
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
-requirements = [
-    'gevent',
-    'blinker',
-    'requests',
-]
-
 
 setup(
     name='gnsq',
@@ -25,13 +19,14 @@ setup(
     author='Trevor Olson',
     author_email='trevor@heytrevor.com',
     url='https://github.com/wtolson/gnsq',
-    packages=[
-        'gnsq',
-    ],
-    package_dir={'gnsq':
-                 'gnsq'},
+    packages=['gnsq'],
+    package_dir={'gnsq': 'gnsq'},
     include_package_data=True,
-    install_requires=requirements,
+    install_requires=[
+        'gevent',
+        'blinker',
+        'requests',
+    ],
     license="BSD",
     zip_safe=False,
     keywords='gnsq',
