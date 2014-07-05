@@ -25,6 +25,87 @@ USERAGENT = 'gnsq/%s' % __version__
 
 
 class Nsqd(HTTPClient):
+    """Low level object representing a TCP or HTTP connection to nsqd.
+
+    **Signals:**
+
+    .. data:: on_message(conn, message)
+        :noindex:
+
+        Sent when the connections receives a message.
+
+    .. data:: on_finish(conn, message_id)
+        :noindex:
+
+        Sent when a message is successfully finished.
+
+    .. data:: on_requeue(conn, message_id, timeout)
+        :noindex:
+
+        Sent when a message is has been requeued.
+
+    .. data:: on_response(conn, response)
+        :noindex:
+
+        Sent when the connections receives a response.
+
+    .. data:: on_error(conn, error)
+        :noindex:
+
+        Sent when the connections receives an error frame.
+
+    .. data:: on_close(conn)
+        :noindex:
+
+        Sent when the connections stream is closed.
+
+    :param address: the host or ip address of the nsqd
+
+    :param tcp_port: the nsqd tcp port to connect to
+
+    :param http_port: the nsqd http port to connect to
+
+    :param timeout: the timeout for read/write operations (in seconds)
+
+    :param client_id: an identifier used to disambiguate this client (defaults
+        to the first part of the hostname)
+
+    :param hostname: the hostname where the client is deployed (defaults to the
+        clients hostname)
+
+    :param heartbeat_interval: the amount of time in seconds to negotiate with
+        the connected producers to send heartbeats (requires nsqd 0.2.19+)
+
+    :param output_buffer_size: size of the buffer (in bytes) used by nsqd for
+        buffering writes to this connection
+
+    :param output_buffer_timeout: timeout (in ms) used by nsqd before flushing
+        buffered writes (set to 0 to disable). Warning: configuring clients with
+        an extremely low (< 25ms) output_buffer_timeout has a significant effect
+        on nsqd CPU usage (particularly with > 50 clients connected).
+
+    :param tls_v1: enable TLS v1 encryption (requires nsqd 0.2.22+)
+
+    :param tls_options: dictionary of options to pass to `ssl.wrap_socket()
+        <http://docs.python.org/2/library/ssl.html#ssl.wrap_socket>`_
+
+    :param snappy: enable Snappy stream compression (requires nsqd 0.2.23+)
+
+    :param deflate: enable deflate stream compression (requires nsqd 0.2.23+)
+
+    :param deflate_level: configure the deflate compression level for this
+        connection (requires nsqd 0.2.23+)
+
+    :param sample_rate: take only a sample of the messages being sent to the
+        client. Not setting this or setting it to 0 will ensure you get all the
+        messages destined for the client. Sample rate can be greater than 0 or
+        less than 100 and the client will receive that percentage of the message
+        traffic. (requires nsqd 0.2.25+)
+
+    :param user_agent: a string identifying the agent for this client in the
+        spirit of HTTP (default: ``<client_library_name>/<version>``) (requires
+        nsqd 0.2.25+)
+    """
     def __init__(
         self,
         address='127.0.0.1',
@@ -184,7 +265,7 @@ class Nsqd(HTTPClient):
         self.stream.upgrade_to_defalte(self.deflate_level)
 
     def identify(self):
-        """Send the clients `IDENTIFY` command to nsqd.
+        """Update client metadata on the server and negotiate features.
 
         :returns: nsqd response data if there was feature negotiation,
             otherwise `None`
