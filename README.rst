@@ -12,7 +12,7 @@ gnsq
         :target: https://pypi.python.org/pypi/gnsq
 
 
-A gevent based NSQ driver for Python.
+A `gevent`_ based `NSQ`_ driver for Python.
 
 * Free software: BSD license
 * Documentation: http://gnsq.readthedocs.org.
@@ -42,3 +42,7 @@ To use gnsq in a project::
         do_work(message.body)
 
     reader.start()
+
+
+.. _gevent: http://gevent.org/
+.. _NSQ: http://nsq.io/

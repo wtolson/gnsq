@@ -4,9 +4,12 @@
    contain the root `toctree` directive.
 
 Welcome to gnsq's documentation!
-======================================
+================================
 
-Contents:
+.. include:: ../README.rst
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
