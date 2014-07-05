@@ -1,5 +1,5 @@
-Nsqd: individual nsqd connection
----------------
+Nsqd client
+-----------
 
 .. autoclass:: gnsq.Nsqd
   :members:
