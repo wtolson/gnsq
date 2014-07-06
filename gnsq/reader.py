@@ -262,13 +262,16 @@ class Reader(object):
         if not self.is_running:
             return
 
+        self.logger.debug('closing')
         self.state = CLOSED
 
         for worker in self.workers:
-            worker.kill()
+            worker.kill(block=False)
 
         for conn in self.conns:
             conn.close_stream()
+
+        self.logger.debug('workers: %r' % self.workers)
 
     def join(self, timeout=None, raise_error=False):
         """Block until all connections have closed and workers stopped."""
