@@ -144,7 +144,7 @@ class Nsqd(HTTPClient):
         self.user_agent = user_agent
 
         self.state = INIT
-        self.last_ressponse = time.time()
+        self.last_response = time.time()
         self.last_message = time.time()
         self.last_ready = 0
         self.ready_count = 0
