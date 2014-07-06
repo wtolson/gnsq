@@ -381,21 +381,20 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_topic_name(topic)
         return self.http_post('/put', fields={'topic': topic}, body=data)
 
+    def _validate_http_mpub(self, message):
+        if '\n' not in message:
+            return message
+
+        error = 'newlines are not allowed in http multipublish'
+        raise errors.NSQException(error)
+
     def multipublish_http(self, topic, messages):
         """Publish an iterable of messages to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
-
-        for message in messages:
-            if '\n' not in message:
-                continue
-
-            error = 'newlines are not allowed in http multipublish'
-            raise errors.NSQException(-1, error)
-
         return self.http_post(
             url='/mput',
             fields={'topic': topic},
-            body='\n'.join(messages)
+            body='\n'.join(self._validate_http_mpub(m) for m in messages)
         )
 
     def create_topic(self, topic):
