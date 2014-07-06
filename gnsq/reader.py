@@ -168,7 +168,6 @@ class Reader(object):
         self.async = async
         self.max_tries = max_tries
         self.max_in_flight = max_in_flight
-        self.max_concurrency = max_concurrency
         self.requeue_delay = requeue_delay
         self.lookupd_poll_interval = lookupd_poll_interval
         self.lookupd_poll_jitter = lookupd_poll_jitter
@@ -201,7 +200,9 @@ class Reader(object):
             self.on_message.connect(message_handler)
 
         if max_concurrency < 0:
-            max_concurrency = cpu_count()
+            self.max_concurrency = cpu_count()
+        else:
+            self.max_concurrency = max_concurrency
 
         if max_concurrency:
             self.queue = Queue()
