@@ -56,7 +56,7 @@ class Reader(object):
     .. data:: on_requeue(reader, message_id, timeout)
         :noindex:
 
-        Sent when a message is has been requeued.
+        Sent when a message is requeued.
 
     .. data:: on_giving_up(reader, message)
         :noindex:
