@@ -34,7 +34,8 @@ class Reader(object):
 
     Messages will automatically be finished when the message handle returns
     unless the readers `async` flag is set to `True`. If an exception occurs or
-    :class:`gnsq.errors.NSQRequeueMessage` is raised, the message will be requeued.
+    :class:`gnsq.errors.NSQRequeueMessage` is raised, the message will be
+    requeued.
 
     The Reader will handle backing off of failed messages up to a configurable
     `max_interval` as well as automatically reconnecting to dropped connections.
