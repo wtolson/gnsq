@@ -59,4 +59,12 @@ def test_backoff_timer():
         timer.failure()
 
     assert timer.c == 100
+    assert timer.get_interval() <= 1000
+
+    timer.reset()
+    assert timer.c == 0
+    assert timer.get_interval() == 0
+
+    timer = BackoffTimer(min_interval=1000)
+    assert timer.c == 0
     assert timer.get_interval() == 1000
