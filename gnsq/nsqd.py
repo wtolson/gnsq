@@ -32,7 +32,7 @@ class Nsqd(HTTPClient):
     .. data:: on_message(conn, message)
         :noindex:
 
-        Sent when the connections receives a message.
+        Sent when a message frame is received.
 
     .. data:: on_finish(conn, message_id)
         :noindex:
@@ -47,17 +47,17 @@ class Nsqd(HTTPClient):
     .. data:: on_response(conn, response)
         :noindex:
 
-        Sent when the connections receives a response.
+        Sent when a response frame is received.
 
     .. data:: on_error(conn, error)
         :noindex:
 
-        Sent when the connections receives an error frame.
+        Sent when an error frame is received.
 
     .. data:: on_close(conn)
         :noindex:
 
-        Sent when the connections stream is closed.
+        Sent when the stream is closed.
 
     :param address: the host or ip address of the nsqd
 
