@@ -71,11 +71,20 @@ class NsqdIntegrationServer(BaseIntegrationServer):
         super(NsqdIntegrationServer, self).__init__(**kwargs)
 
     @property
+    def https_port(self):
+        return self.http_port + 1
+
+    @property
+    def https_address(self):
+        return '%s:%d' % (self.address, self.https_port)
+
+    @property
     def cmd(self):
         cmd = [
             'nsqd',
             '--tcp-address', self.tcp_address,
             '--http-address', self.http_address,
+            '--https-address', self.https_address,
             '--data-path', self.data_path,
             '--tls-cert', self.tls_cert,
             '--tls-key', self.tls_key,
