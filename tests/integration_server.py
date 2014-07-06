@@ -66,9 +66,13 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
     tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
 
+    def __init__(self, lookupd=None, **kwargs):
+        self.lookupd = lookupd
+        super(NsqdIntegrationServer, self).__init__(**kwargs)
+
     @property
     def cmd(self):
-        return [
+        cmd = [
             'nsqd',
             '--tcp-address', self.tcp_address,
             '--http-address', self.http_address,
@@ -76,6 +80,11 @@ class NsqdIntegrationServer(BaseIntegrationServer):
             '--tls-cert', self.tls_cert,
             '--tls-key', self.tls_key,
         ]
+
+        if self.lookupd:
+            cmd.extend(['--lookupd-tcp-address', self.lookupd])
+
+        return cmd
 
 
 class LookupdIntegrationServer(BaseIntegrationServer):
