@@ -27,6 +27,31 @@ def test_channel_names(name, good):
     assert nsq.valid_channel_name(name) == good
 
 
+def test_assert_topic():
+    assert nsq.assert_valid_topic_name('topic') is None
+
+    with pytest.raises(ValueError):
+        nsq.assert_valid_topic_name('invalid name with space')
+
+
+def test_assert_channel():
+    assert nsq.assert_valid_channel_name('channel') is None
+
+    with pytest.raises(ValueError):
+        nsq.assert_valid_channel_name('invalid name with space')
+
+
+def test_invalid_commands():
+    with pytest.raises(TypeError):
+        nsq.requeue('1234', None)
+
+    with pytest.raises(TypeError):
+        nsq.ready(None)
+
+    with pytest.raises(ValueError):
+        nsq.ready(-1)
+
+
 def test_backoff_timer():
     timer = BackoffTimer(max_interval=1000)
     assert timer.get_interval() == 0
