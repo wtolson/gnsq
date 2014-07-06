@@ -1,44 +1,53 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import requests
-from .errors import NSQException
+
+import urllib3
+
+try:
+    import simplejson as json
+except ImportError:
+    import json  # pyflakes.ignore
+
+from .errors import NSQHttpError
 
 
 class HTTPClient(object):
     base_url = None
-    _session = None
+    __http = None
 
     @property
-    def session(self):
-        if self._session is None:
-            self._session = requests.Session()
-        return self._session
+    def http(self):
+        if self.__http is None:
+            self.__http = urllib3.connection_from_url(url=self.base_url)
+        return self.__http
 
-    def url(self, *parts):
-        return self.base_url + '/'.join(parts)
+    def http_request(self, method, url, **kwargs):
+        response = self.http.request_encode_url(method, url, **kwargs)
 
-    def _check_connection(self):
-        pass
+        if 'application/json' in response.getheader('content-type', ''):
+            return self._http_check_json(response)
 
-    def _check_api(self, *args, **kwargs):
-        self._check_connection()
+        return self._http_check(response)
 
-        resp = self.session.post(*args, **kwargs)
-        if resp.status_code != 200:
-            raise NSQException(resp.status_code, 'api error')
+    def _http_check(self, response):
+        if response.status != 200:
+            raise NSQHttpError('http error <%s>' % response.status)
+        return response.data
 
-        return resp.text
+    def _http_check_json(self, response):
+        try:
+            data = json.loads(response.data)
+        except ValueError:
+            return self._http_check(response)
 
-    def _json_api(self, *args, **kwargs):
-        self._check_connection()
+        if response.status != 200:
+            status_txt = data.get('status_txt', 'http error')
+            raise NSQHttpError('%s <%s>' % (status_txt, response.status))
 
-        resp = self.session.post(*args, **kwargs)
-        if resp.status_code != 200:
-            try:
-                msg = resp.json()['status_txt']
-            except:
-                msg = 'api error'
+        return data['data']
 
-            raise NSQException(resp.status_code, msg)
+    def http_get(self, url, **kwargs):
+        return self.http_request('GET', url, **kwargs)
 
-        return resp.json()['data']
+    def http_post(self, url, **kwargs):
+        return self.http_request('POST', url, **kwargs)

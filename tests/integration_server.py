@@ -3,13 +3,14 @@ import time
 import shutil
 import subprocess
 import tempfile
-import requests
 import os.path
+import urllib3
 
 
 class IntegrationNsqdServer(object):
     tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
     tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
+    http = urllib3.PoolManager()
 
     def __init__(self, address=None, tcp_port=None, http_port=None):
         if address is None:
@@ -37,9 +38,9 @@ class IntegrationNsqdServer(object):
 
     def is_running(self):
         try:
-            resp = requests.get('http://%s/ping' % self.http_address)
-            return resp.text == 'OK'
-        except requests.ConnectionError:
+            url = 'http://%s/ping' % self.http_address
+            return self.http.request('GET', url).data == 'OK'
+        except urllib3.exceptions.HTTPError:
             return False
 
     def wait(self):

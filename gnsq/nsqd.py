@@ -376,19 +376,10 @@ class Nsqd(HTTPClient):
     def base_url(self):
         return 'http://%s:%s/' % (self.address, self.http_port)
 
-    def _check_connection(self):
-        if self.http_port:
-            return
-        raise errors.NSQException(-1, 'no http port')
-
     def publish_http(self, topic, data):
         """Publish a message to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
-        return self._check_api(
-            self.url('put'),
-            params={'topic': topic},
-            data=data
-        )
+        return self.http_post('/put', fields={'topic': topic}, body=data)
 
     def multipublish_http(self, topic, messages):
         """Publish an iterable of messages to the given topic over http."""
@@ -401,61 +392,52 @@ class Nsqd(HTTPClient):
             error = 'newlines are not allowed in http multipublish'
             raise errors.NSQException(-1, error)
 
-        return self._check_api(
-            self.url('mput'),
-            params={'topic': topic},
-            data='\n'.join(messages)
+        return self.http_post(
+            url='/mput',
+            fields={'topic': topic},
+            body='\n'.join(messages)
         )
 
     def create_topic(self, topic):
         """Create a topic."""
         nsq.assert_valid_topic_name(topic)
-        return self._json_api(
-            self.url('create_topic'),
-            params={'topic': topic}
-        )
+        return self.http_post('/create_topic', fields={'topic': topic})
 
     def delete_topic(self, topic):
         """Delete a topic."""
         nsq.assert_valid_topic_name(topic)
-        return self._json_api(
-            self.url('delete_topic'),
-            params={'topic': topic}
-        )
+        return self.http_post('/delete_topic', fields={'topic': topic})
 
     def create_channel(self, topic, channel):
         """Create a channel for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
-        return self._json_api(
-            self.url('create_channel'),
-            params={'topic': topic, 'channel': channel}
+        return self.http_post(
+            url='/create_channel',
+            fields={'topic': topic, 'channel': channel},
         )
 
     def delete_channel(self, topic, channel):
         """Delete an existing channel for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
-        return self._json_api(
-            self.url('delete_channel'),
-            params={'topic': topic, 'channel': channel}
+        return self.http_post(
+            url='/delete_channel',
+            fields={'topic': topic, 'channel': channel},
         )
 
     def empty_topic(self, topic):
         """Empty all the queued messages for an existing topic."""
         nsq.assert_valid_topic_name(topic)
-        return self._json_api(
-            self.url('empty_topic'),
-            params={'topic': topic}
-        )
+        return self.http_post('/empty_topic', fields={'topic': topic})
 
     def empty_channel(self, topic, channel):
         """Empty all the queued messages for an existing channel."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
-        return self._json_api(
-            self.url('empty_channel'),
-            params={'topic': topic, 'channel': channel}
+        return self.http_post(
+            url='/empty_channel',
+            fields={'topic': topic, 'channel': channel},
         )
 
     def pause_channel(self, topic, channel):
@@ -465,34 +447,34 @@ class Nsqd(HTTPClient):
         """
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
-        return self._json_api(
-            self.url('pause_channel'),
-            params={'topic': topic, 'channel': channel}
+        return self.http_post(
+            url='/pause_channel',
+            fields={'topic': topic, 'channel': channel},
         )
 
     def unpause_channel(self, topic, channel):
         """Resume message flow to channels of an existing, paused, topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
-        return self._json_api(
-            self.url('unpause_channel'),
-            params={'topic': topic, 'channel': channel}
+        return self.http_post(
+            url='/unpause_channel',
+            fields={'topic': topic, 'channel': channel},
         )
 
     def stats(self):
         """Return internal instrumented statistics."""
-        return self._json_api(self.url('stats'), params={'format': 'json'})
+        return self.http_get('/stats', fields={'format': 'json'})
 
     def ping(self):
         """Monitoring endpoint.
 
         :returns: should return `"OK"`, otherwise raises an exception.
         """
-        return self._check_api(self.url('ping'))
+        return self.http_get('/ping')
 
     def info(self):
         """Returns version information."""
-        return self._json_api(self.url('info'))
+        return self.http_get('/info')
 
     def publish(self, topic, data):
         """Publish a message.

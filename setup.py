@@ -25,7 +25,7 @@ setup(
     install_requires=[
         'gevent',
         'blinker',
-        'requests',
+        'urllib3',
     ],
     license="BSD",
     zip_safe=False,

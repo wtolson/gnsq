@@ -15,6 +15,10 @@ class NSQNoConnections(NSQException):
     pass
 
 
+class NSQHttpError(NSQException):
+    pass
+
+
 class NSQSocketError(socket.error, NSQException):
     pass
 
