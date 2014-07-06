@@ -11,8 +11,7 @@ help:
 	@echo "release - package and upload a release"
 	@echo "dist - package"
 
-clean: clean-build clean-pyc clean-docs
-	rm -fr htmlcov/
+clean: clean-build clean-pyc clean-docs clean-coverage clean-tox
 
 clean-build:
 	rm -fr build/
@@ -30,6 +29,13 @@ clean-docs:
 	rm -f docs/modules.rst
 	$(MAKE) -C docs clean
 
+clean-coverage:
+	rm .coverage
+	rm -fr htmlcov/
+
+clean-tox:
+	rm -fr .tox
+
 lint:
 	flake8 gnsq tests
 
@@ -43,9 +49,7 @@ test-all:
 	tox
 
 coverage:
-	py.test --runslow --cov gnsq tests
-	coverage report -m
-	coverage html
+	py.test --runslow --cov gnsq --cov-report html tests
 	open htmlcov/index.html
 
 docs: clean-docs
