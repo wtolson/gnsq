@@ -2,12 +2,12 @@ from __future__ import with_statement
 
 import pytest
 import gnsq
-from integration_server import IntegrationNsqdServer
+from integration_server import NsqdIntegrationServer
 
 
 @pytest.mark.slow
 def test_basic():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
         assert conn.ping() == 'OK'
         assert 'topics' in conn.stats()
@@ -16,7 +16,7 @@ def test_basic():
 
 @pytest.mark.slow
 def test_topics_channels():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
         assert len(conn.stats()['topics']) == 0
 
@@ -50,7 +50,7 @@ def test_topics_channels():
 
 
 def test_publish():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
 
         conn.publish_http('topic', 'sup')

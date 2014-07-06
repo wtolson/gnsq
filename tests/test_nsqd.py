@@ -9,7 +9,7 @@ from gnsq import protocal as nsq
 from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
 
 from mock_server import mock_server
-from integration_server import IntegrationNsqdServer
+from integration_server import NsqdIntegrationServer
 
 
 def mock_response(frame_type, data):
@@ -218,7 +218,7 @@ def test_sync_receive_messages():
 
 @pytest.mark.slow
 def test_tls():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = Nsqd(
             address=server.address,
             tcp_port=server.tcp_port,
@@ -243,7 +243,7 @@ def test_tls():
 
 @pytest.mark.slow
 def test_deflate():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = Nsqd(
             address=server.address,
             tcp_port=server.tcp_port,
@@ -264,7 +264,7 @@ def test_deflate():
 
 @pytest.mark.slow
 def test_snappy():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
         conn = Nsqd(
             address=server.address,
             tcp_port=server.tcp_port,

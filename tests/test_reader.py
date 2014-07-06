@@ -1,12 +1,12 @@
 import pytest
 from gnsq import Nsqd, Reader
 from gnsq.errors import NSQSocketError
-from integration_server import IntegrationNsqdServer
+from integration_server import NsqdIntegrationServer
 
 
 @pytest.mark.slow
 def test_messages():
-    with IntegrationNsqdServer() as server:
+    with NsqdIntegrationServer() as server:
 
         class Accounting(object):
             count = 0

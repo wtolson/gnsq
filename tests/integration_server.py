@@ -7,9 +7,7 @@ import os.path
 import urllib3
 
 
-class IntegrationNsqdServer(object):
-    tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
-    tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
+class BaseIntegrationServer(object):
     http = urllib3.PoolManager()
 
     def __init__(self, address=None, tcp_port=None, http_port=None):
@@ -27,6 +25,10 @@ class IntegrationNsqdServer(object):
         self.tcp_port = tcp_port
         self.http_port = http_port
         self.data_path = tempfile.mkdtemp()
+
+    @property
+    def cmd(self):
+        raise NotImplementedError('cmd not implemented')
 
     @property
     def tcp_address(self):
@@ -48,8 +50,24 @@ class IntegrationNsqdServer(object):
             if self.is_running():
                 return
             time.sleep(0.01 * pow(2, attempt))
-        raise RuntimeError('unable to start nsqd')
+        raise RuntimeError('unable to start: %r' % ' '.join(self.cmd))
 
+    def __enter__(self):
+        self.subp = subprocess.Popen(self.cmd)
+        self.wait()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.subp.terminate()
+        self.subp.wait()
+        shutil.rmtree(self.data_path)
+
+
+class NsqdIntegrationServer(BaseIntegrationServer):
+    tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
+    tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
+
+    @property
     def cmd(self):
         return [
             'nsqd',
@@ -60,12 +78,12 @@ class IntegrationNsqdServer(object):
             '--tls-key', self.tls_key,
         ]
 
-    def __enter__(self):
-        self.nsqd = subprocess.Popen(self.cmd())
-        self.wait()
-        return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.nsqd.terminate()
-        self.nsqd.wait()
-        shutil.rmtree(self.data_path)
+class LookupdIntegrationServer(BaseIntegrationServer):
+    @property
+    def cmd(self):
+        return [
+            'nsqlookupd',
+            '--tcp-address', self.tcp_address,
+            '--http-address', self.http_address,
+        ]
