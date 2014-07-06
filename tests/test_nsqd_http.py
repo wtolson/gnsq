@@ -53,13 +53,13 @@ def test_publish():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
 
-        conn.publish_http('topic', 'sup')
+        conn.publish('topic', 'sup')
         assert conn.stats()['topics'][0]['depth'] == 1
 
-        conn.multipublish_http('topic', ['sup', 'sup'])
+        conn.multipublish('topic', ['sup', 'sup'])
         assert conn.stats()['topics'][0]['depth'] == 3
 
-        conn.multipublish_http('topic', iter(['sup', 'sup', 'sup']))
+        conn.multipublish('topic', iter(['sup', 'sup', 'sup']))
         assert conn.stats()['topics'][0]['depth'] == 6
 
         conn.empty_topic('topic')
@@ -67,7 +67,7 @@ def test_publish():
 
         conn.create_topic('topic')
         conn.create_channel('topic', 'channel')
-        conn.publish_http('topic', 'sup')
+        conn.publish('topic', 'sup')
         assert conn.stats()['topics'][0]['channels'][0]['depth'] == 1
 
         conn.empty_channel('topic', 'channel')
