@@ -43,7 +43,7 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source gnsq py.test
+	py.test --runslow --cov gnsq tests
 	coverage report -m
 	coverage html
 	open htmlcov/index.html
