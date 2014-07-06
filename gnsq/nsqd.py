@@ -243,9 +243,23 @@ class Nsqd(HTTPClient):
         self.last_message = time.time()
         self.ready_count -= 1
         self.in_flight += 1
-        message = Message(self, *nsq.unpack_message(data))
+
+        message = Message(*nsq.unpack_message(data))
+        message.on_finish.connect(self.handle_finish)
+        message.on_requeue.connect(self.handle_requeue)
+        message.on_touch.connect(self.handle_touch)
+
         self.on_message.send(self, message=message)
         return message
+
+    def handle_finish(self, message):
+        self.finish(message.id)
+
+    def handle_requeue(self, message, timeout):
+        self.requeue(message.id, timeout)
+
+    def handle_touch(self, message):
+        self.touch(message.id)
 
     def finish_inflight(self):
         self.in_flight -= 1
