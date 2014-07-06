@@ -7,7 +7,11 @@ import gevent
 from gnsq import Nsqd, Reader, states
 from gnsq.errors import NSQSocketError
 
-from integration_server import NsqdIntegrationServer, LookupdIntegrationServer
+from integration_server import (
+    with_all,
+    LookupdIntegrationServer,
+    NsqdIntegrationServer
+)
 
 
 def test_basic():
@@ -111,7 +115,8 @@ def test_max_concurrency():
     server1 = NsqdIntegrationServer()
     server2 = NsqdIntegrationServer()
 
-    with server1, server2:
+    @with_all(server1, server2)
+    def _(server1, server2):
         class Accounting(object):
             count = 0
             total = 100
@@ -176,7 +181,8 @@ def test_lookupd():
     server1 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
     server2 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
 
-    with lookupd_server, server1, server2:
+    @with_all(lookupd_server, server1, server2)
+    def _(lookupd_server, server1, server2):
         class Accounting(object):
             count = 0
             total = 500

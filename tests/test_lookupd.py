@@ -3,7 +3,11 @@ from __future__ import with_statement
 import pytest
 import gnsq
 
-from integration_server import LookupdIntegrationServer, NsqdIntegrationServer
+from integration_server import (
+    with_all,
+    LookupdIntegrationServer,
+    NsqdIntegrationServer
+)
 
 
 @pytest.mark.slow
@@ -26,7 +30,8 @@ def test_lookup():
     lookupd_server = LookupdIntegrationServer()
     nsqd_server = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
 
-    with lookupd_server, nsqd_server:
+    @with_all(lookupd_server, nsqd_server)
+    def _(lookupd_server, nsqd_server):
         lookupd = gnsq.Lookupd(lookupd_server.http_address)
         conn = gnsq.Nsqd(nsqd_server.address, http_port=nsqd_server.http_port)
 
