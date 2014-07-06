@@ -17,12 +17,6 @@ class CompressionSocket(object):
             return
         self._bootstrapped = self.decompress(data)
 
-    def compress(self, data):
-        return data
-
-    def decompress(self, data):
-        return data
-
     def recv(self, size):
         if self._bootstrapped:
             data = self._bootstrapped

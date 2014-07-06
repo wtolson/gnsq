@@ -327,6 +327,8 @@ def test_tls():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
+        conn.close()
+
 
 @pytest.mark.slow
 def test_deflate():
@@ -348,6 +350,8 @@ def test_deflate():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
+        conn.close()
+
 
 @pytest.mark.slow
 def test_snappy():
@@ -368,6 +372,8 @@ def test_snappy():
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
+
+        conn.close()
 
 
 @pytest.mark.slow
