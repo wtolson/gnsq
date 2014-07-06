@@ -40,8 +40,30 @@ def test_connection():
         conn.connect()
         assert conn.state == states.CONNECTED
 
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
         conn.close_stream()
         assert conn.state == states.DISCONNECTED
+
+
+def test_disconnected():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        assert socket.recv(1) == ''
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+        conn.close_stream()
+        assert conn.state == states.DISCONNECTED
+
+        with pytest.raises(errors.NSQSocketError):
+            conn.nop()
+
+        with pytest.raises(errors.NSQSocketError):
+            conn.read_response()
 
 
 @pytest.mark.parametrize('body', [
@@ -130,6 +152,48 @@ def test_command(command, args, resp):
         getattr(conn, command)(*args)
 
 
+def test_publish():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        assert socket.recv(10) == 'PUB topic\n'
+
+        assert nsq.unpack_size(socket.recv(4)) == 3
+        assert socket.recv(3) == 'sup'
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+        conn.publish('topic', 'sup')
+
+
+def test_multipublish():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        assert socket.recv(11) == 'MPUB topic\n'
+
+        size = nsq.unpack_size(socket.recv(4))
+        data = socket.recv(size)
+
+        head, data = data[:4], data[4:]
+        assert nsq.unpack_size(head) == 2
+
+        for _ in xrange(2):
+            head, data = data[:4], data[4:]
+            assert nsq.unpack_size(head) == 3
+
+            head, data = data[:3], data[3:]
+            assert head == 'sup'
+
+        assert data == ''
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+        conn.multipublish('topic', ['sup', 'sup'])
+
+
 @pytest.mark.parametrize('error,error_class,fatal', [
     ('E_INVALID', errors.NSQInvalid, True),
     ('E_BAD_BODY', errors.NSQBadBody, True),
@@ -164,6 +228,8 @@ def test_hashing():
     conn1 = Nsqd('localhost', 1337)
     conn2 = Nsqd('localhost', 1337)
     assert conn1 == conn2
+    assert not (conn1 < conn2)
+    assert not (conn2 < conn1)
 
     test = {conn1: True}
     assert conn2 in test
@@ -214,6 +280,22 @@ def test_sync_receive_messages():
             assert msg.id == '%016d' % i
             assert msg.attempts == i
             assert json.loads(msg.body)['data']['test_key'] == i
+
+
+def test_sync_heartbeat():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, '_heartbeat_'))
+        assert socket.recv(4) == 'NOP\n'
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == '_heartbeat_'
 
 
 @pytest.mark.slow
