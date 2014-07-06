@@ -322,6 +322,11 @@ def test_tls():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
 
 @pytest.mark.slow
 def test_deflate():
@@ -363,3 +368,17 @@ def test_snappy():
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
+
+
+@pytest.mark.slow
+def test_cls_error():
+    with NsqdIntegrationServer() as server:
+        conn = Nsqd(address=server.address, tcp_port=server.tcp_port)
+
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        conn.close()
+        frame, error = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_ERROR
+        assert isinstance(error, errors.NSQInvalid)

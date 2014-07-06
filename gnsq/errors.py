@@ -102,4 +102,5 @@ ERROR_CODES = {
 
 
 def make_error(error_code):
-    return ERROR_CODES.get(error_code, NSQErrorCode)(error_code)
+    parts = error_code.split(None, 1)
+    return ERROR_CODES.get(parts[0], NSQErrorCode)(parts[-1])
