@@ -16,7 +16,6 @@ class BaseIntegrationServer(object):
 
         if tcp_port is None:
             tcp_port = random.randint(10000, 65535)
-            tcp_port = 1234
 
         if http_port is None:
             http_port = tcp_port + 1
