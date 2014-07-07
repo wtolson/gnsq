@@ -10,7 +10,7 @@ try:
 except ImportError:
     import json  # pyflakes.ignore
 
-from . import protocal as nsq
+from . import protocol as nsq
 from . import errors
 
 from .message import Message

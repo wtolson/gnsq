@@ -6,7 +6,7 @@ try:
 except ImportError:
     import json  # pyflakes.ignore
 
-from gnsq import protocal as nsq
+from gnsq import protocol as nsq
 
 
 def pytest_generate_tests(metafunc):

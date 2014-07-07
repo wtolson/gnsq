@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from .httpclient import HTTPClient
-from . import protocal as nsq
+from . import protocol as nsq
 
 
 class Lookupd(HTTPClient):

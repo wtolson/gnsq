@@ -5,7 +5,7 @@ import json
 import pytest
 
 from gnsq import Nsqd, Message, states, errors
-from gnsq import protocal as nsq
+from gnsq import protocol as nsq
 from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
 
 from mock_server import mock_server

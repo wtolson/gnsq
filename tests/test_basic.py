@@ -1,7 +1,7 @@
 import pytest
 
 from gnsq import BackoffTimer
-from gnsq import protocal as nsq
+from gnsq import protocol as nsq
 
 
 @pytest.mark.parametrize('name,good', [
