@@ -40,10 +40,10 @@ lint:
 	flake8 gnsq tests
 
 test:
-	py.test
-
-test-slow:
 	py.test --runslow
+
+test-fast:
+	py.test
 
 test-all:
 	tox
