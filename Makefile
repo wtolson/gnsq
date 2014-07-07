@@ -30,7 +30,7 @@ clean-docs:
 	$(MAKE) -C docs clean
 
 clean-coverage:
-	rm .coverage
+	rm -f .coverage
 	rm -fr htmlcov/
 
 clean-tox:
