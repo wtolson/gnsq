@@ -327,7 +327,17 @@ def test_tls():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
-        conn.close()
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
 
 
 @pytest.mark.slow
@@ -350,7 +360,22 @@ def test_deflate():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
-        conn.close()
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
 
 
 @pytest.mark.slow
@@ -373,7 +398,22 @@ def test_snappy():
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == 'OK'
 
-        conn.close()
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
 
 
 @pytest.mark.slow

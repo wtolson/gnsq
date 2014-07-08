@@ -12,7 +12,12 @@ class DefalteSocket(CompressionSocket):
         super(DefalteSocket, self).__init__(socket)
 
     def compress(self, data):
-        return self._compressor.compress(data)
+        data = self._compressor.compress(data)
+        return data + self._compressor.flush(zlib.Z_SYNC_FLUSH)
 
     def decompress(self, data):
         return self._decompressor.decompress(data)
+
+    def close(self):
+        self._socket.write(self._compressor.flush(zlib.Z_FINISH))
+        self._socket.close()
