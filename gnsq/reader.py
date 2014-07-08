@@ -262,16 +262,15 @@ class Reader(object):
         if not self.is_running:
             return
 
-        self.logger.debug('closing')
         self.state = CLOSED
 
+        self.logger.debug('closing %d worker(s)' % len(self.workers))
         for worker in self.workers:
             worker.kill(block=False)
 
+        self.logger.debug('closing %d connection(s)' % len(self.conns))
         for conn in self.conns:
             conn.close_stream()
-
-        self.logger.debug('workers: %r' % self.workers)
 
     def join(self, timeout=None, raise_error=False):
         """Block until all connections have closed and workers stopped."""
@@ -548,8 +547,6 @@ class Reader(object):
         try:
             conn.listen()
         except NSQException as error:
-            if self.state == CLOSED:
-                return
             self.logger.warning('[%s] connection lost (%r)' % (conn, error))
 
         self.handle_connection_failure(conn)
@@ -575,6 +572,9 @@ class Reader(object):
         self.conns.discard(conn)
         self.conn_workers.pop(conn, None)
         conn.close_stream()
+
+        if self.state == CLOSED:
+            return
 
         if conn.ready_count:
             self.need_ready_redistributed = True
