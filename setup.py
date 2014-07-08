@@ -19,7 +19,10 @@ setup(
     author='Trevor Olson',
     author_email='trevor@heytrevor.com',
     url='https://github.com/wtolson/gnsq',
-    packages=['gnsq'],
+    packages=[
+        'gnsq',
+        'gnsq.stream',
+    ],
     package_dir={'gnsq': 'gnsq'},
     include_package_data=True,
     install_requires=[
