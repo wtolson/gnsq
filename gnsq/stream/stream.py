@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 from resource import getpagesize
-from errno import ENOTCONN
+from errno import ENOTCONN, EDEADLK, EAGAIN, EWOULDBLOCK
 
 import gevent
 from gevent import socket
@@ -70,6 +70,9 @@ class Stream(object):
             try:
                 packet = self.socket.recv(self.buffer_size)
             except socket.error as error:
+                if error.errno in (EDEADLK, EAGAIN, EWOULDBLOCK):
+                    gevent.sleep()
+                    continue
                 raise NSQSocketError(*error)
 
             if not packet:
