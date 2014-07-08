@@ -49,6 +49,7 @@ def test_topics_channels():
         assert len(conn.stats()['topics'][0]['channels']) == 0
 
 
+@pytest.mark.slow
 def test_publish():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
