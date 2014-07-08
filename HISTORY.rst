@@ -3,10 +3,10 @@
 History
 -------
 
-0.1.2 (TBD)
+0.1.2 (2014-07-08)
 ~~~~~~~~~~~~~~~~~~
 
-* Flush delfate buffer for each packet.
+* Flush delfate buffer for each message.
 
 0.1.1 (2014-07-07)
 ~~~~~~~~~~~~~~~~~~
