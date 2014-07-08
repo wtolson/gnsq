@@ -7,6 +7,7 @@ History
 ~~~~~~~~~~~~~~~~~~
 
 * Block as expected on start, even if already started.
+* Raise runtime error if starting the reader without a message handler.
 
 0.1.2 (2014-07-08)
 ~~~~~~~~~~~~~~~~~~

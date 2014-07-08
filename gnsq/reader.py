@@ -243,6 +243,9 @@ class Reader(object):
                 self.join()
             return
 
+        if not any(self.on_message.receivers_for(blinker.ANY)):
+            raise RuntimeError('no receivers connected to on_message')
+
         self.logger.debug('starting %s...' % self.name)
         self.state = RUNNING
         self.query_nsqd()
