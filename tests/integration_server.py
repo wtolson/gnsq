@@ -55,7 +55,7 @@ class BaseIntegrationServer(object):
             return False
 
     def wait(self):
-        for attempt in xrange(10):
+        for attempt in xrange(12):
             if self.is_running():
                 return
             time.sleep(0.01 * pow(2, attempt))
