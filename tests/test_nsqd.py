@@ -337,7 +337,7 @@ def test_tls():
         assert frame == nsq.FRAME_TYPE_MESSAGE
         assert data.body == 'sup'
 
-        conn.close()
+        conn.close_stream()
 
 
 @pytest.mark.slow
@@ -375,7 +375,7 @@ def test_deflate():
         assert frame == nsq.FRAME_TYPE_MESSAGE
         assert data.body == 'sup'
 
-        conn.close()
+        conn.close_stream()
 
 
 @pytest.mark.slow
@@ -413,7 +413,7 @@ def test_snappy():
         assert frame == nsq.FRAME_TYPE_MESSAGE
         assert data.body == 'sup'
 
-        conn.close()
+        conn.close_stream()
 
 
 @pytest.mark.slow
