@@ -239,6 +239,8 @@ class Reader(object):
         """Start discovering and listing to connections."""
         if self.state != INIT:
             self.logger.warn('%s all ready started' % self.name)
+            if block:
+                self.join()
             return
 
         self.logger.debug('starting %s...' % self.name)
