@@ -289,12 +289,15 @@ class Nsqd(HTTPClient):
 
     def upgrade_to_tls(self):
         self.stream.upgrade_to_tls(**self.tls_options)
+        return self.read_response()
 
     def upgrade_to_snappy(self):
         self.stream.upgrade_to_snappy()
+        return self.read_response()
 
     def upgrade_to_defalte(self):
         self.stream.upgrade_to_defalte(self.deflate_level)
+        return self.read_response()
 
     def identify(self):
         """Update client metadata on the server and negotiate features.
@@ -353,7 +356,7 @@ class Nsqd(HTTPClient):
         if self.tls_v1 and data.get('tls_v1'):
             self.upgrade_to_tls()
 
-        elif self.snappy and data.get('snappy'):
+        if self.snappy and data.get('snappy'):
             self.upgrade_to_snappy()
 
         elif self.deflate and data.get('deflate'):
