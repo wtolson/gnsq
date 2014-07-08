@@ -104,7 +104,6 @@ class Stream(object):
 
         self.state = DISCONNECTED
         self.queue.put(StopIteration)
-        self.socket.close()
 
     def send_loop(self):
         for data, result in self.queue:
@@ -121,6 +120,8 @@ class Stream(object):
 
             except Exception as error:
                 result.set_exception(error)
+
+        self.socket.close()
 
     def upgrade_to_tls(
         self,
