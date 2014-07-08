@@ -232,6 +232,14 @@ class Reader(object):
         """
         return blinker.Signal(doc='Emitted when an exception is caught.')
 
+    @cached_property
+    def on_close(self):
+        """Emitted after :meth:`close`.
+
+        The signal sender is the reader.
+        """
+        return blinker.Signal(doc='Emitted after the reader is closed.')
+
     def _get_nsqds(self, nsqd_tcp_addresses):
         if isinstance(nsqd_tcp_addresses, basestring):
             return set([nsqd_tcp_addresses])
@@ -293,6 +301,8 @@ class Reader(object):
         self.logger.debug('closing %d connection(s)' % len(self.conns))
         for conn in self.conns:
             conn.close_stream()
+
+        self.on_close.send(self)
 
     def join(self, timeout=None, raise_error=False):
         """Block until all connections have closed and workers stopped."""
