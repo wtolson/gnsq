@@ -1,40 +1,43 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import blinker
+from .decorators import cached_property
 from .errors import NSQException
 
 
 class Message(object):
-    """A class representing a message received from nsqd.
-
-    **Signals:**
-
-    .. data:: on_finish(reader, message)
-        :noindex:
-
-        Sent when successfully finished.
-
-    .. data:: on_requeue(reader, message, timeout)
-        :noindex:
-
-        Sent when requeued.
-
-    .. data:: on_touch(reader, message)
-        :noindex:
-
-        Sent when touched.
-    """
-
+    """A class representing a message received from nsqd."""
     def __init__(self, timestamp, attempts, id, body):
         self.timestamp = timestamp
         self.attempts = attempts
         self.id = id
         self.body = body
-
         self._has_responded = False
-        self.on_finish = blinker.Signal()
-        self.on_requeue = blinker.Signal()
-        self.on_touch = blinker.Signal()
+
+    @cached_property
+    def on_finish(self):
+        """Emitted after :meth:`finish`.
+
+        The signal sender is the message instance.
+        """
+        return blinker.Signal(doc='Emitted after message is finished.')
+
+    @cached_property
+    def on_requeue(self):
+        """Emitted after :meth:`requeue`.
+
+        The signal sender is the message instance and sends the `timeout` as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted after message is requeued.')
+
+    @cached_property
+    def on_touch(self):
+        """Emitted after :meth:`touch`.
+
+        The signal sender is the message instance.
+        """
+        return blinker.Signal(doc='Emitted after message is touched.')
 
     def has_responded(self):
         """Returns whether or not this message has been responded to."""
