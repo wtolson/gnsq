@@ -417,6 +417,96 @@ def test_snappy():
 
 
 @pytest.mark.slow
+def test_tls_and_deflate():
+    with NsqdIntegrationServer() as server:
+        conn = Nsqd(
+            address=server.address,
+            tcp_port=server.tcp_port,
+            deflate=True,
+            tls_v1=True,
+            tls_options={
+                'keyfile': server.tls_key,
+                'certfile': server.tls_cert,
+            }
+        )
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['deflate'] is True
+        assert resp['tls_v1'] is True
+        assert isinstance(conn.stream.socket, DefalteSocket)
+        assert isinstance(conn.stream.socket._socket, SSLSocket)
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
+
+
+@pytest.mark.slow
+def test_tls_and_snappy():
+    with NsqdIntegrationServer() as server:
+        conn = Nsqd(
+            address=server.address,
+            tcp_port=server.tcp_port,
+            snappy=True,
+            tls_v1=True,
+            tls_options={
+                'keyfile': server.tls_key,
+                'certfile': server.tls_cert,
+            }
+        )
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['snappy'] is True
+        assert resp['tls_v1'] is True
+        assert isinstance(conn.stream.socket, SnappySocket)
+        assert isinstance(conn.stream.socket._socket, SSLSocket)
+
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
+
+
+@pytest.mark.slow
 def test_cls_error():
     with NsqdIntegrationServer() as server:
         conn = Nsqd(address=server.address, tcp_port=server.tcp_port)
