@@ -197,7 +197,7 @@ class Reader(object):
         self.on_exception = blinker.Signal()
 
         if message_handler is not None:
-            self.on_message.connect(message_handler)
+            self.on_message.connect(message_handler, weak=False)
 
         if max_concurrency < 0:
             self.max_concurrency = cpu_count()
