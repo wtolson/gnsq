@@ -13,13 +13,16 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 setup(
     name='gnsq',
-    version='0.1.0',
+    version='0.1.1',
     description='A gevent based NSQ driver for Python.',
     long_description=readme + '\n\n' + history,
     author='Trevor Olson',
     author_email='trevor@heytrevor.com',
     url='https://github.com/wtolson/gnsq',
-    packages=['gnsq'],
+    packages=[
+        'gnsq',
+        'gnsq.stream',
+    ],
     package_dir={'gnsq': 'gnsq'},
     include_package_data=True,
     install_requires=[

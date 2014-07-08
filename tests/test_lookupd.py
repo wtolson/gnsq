@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import pytest
+import gevent
 import gnsq
 
 from integration_server import (
@@ -40,6 +41,8 @@ def test_lookup():
         assert len(lookupd.nodes()['producers']) == 1
 
         conn.create_topic('topic')
+        gevent.sleep(0.1)
+
         info = lookupd.lookup('topic')
         assert len(info['channels']) == 0
         assert len(info['producers']) == 1
@@ -47,6 +50,8 @@ def test_lookup():
         assert len(lookupd.channels('topic')['channels']) == 0
 
         conn.create_channel('topic', 'channel')
+        gevent.sleep(0.1)
+
         info = lookupd.lookup('topic')
         assert len(info['channels']) == 1
         assert len(info['producers']) == 1
