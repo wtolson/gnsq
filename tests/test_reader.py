@@ -249,6 +249,7 @@ def test_backoff():
             channel='test',
             nsqd_tcp_addresses=[server.tcp_address],
             max_in_flight=100,
+            message_handler=lambda reader, message: None
         )
 
         reader.start(block=False)
