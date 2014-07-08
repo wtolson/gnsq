@@ -17,6 +17,7 @@ from .message import Message
 from .httpclient import HTTPClient
 from .states import INIT, CONNECTED, DISCONNECTED
 from .stream import Stream
+from .decorators import cached_property
 from .version import __version__
 
 HOSTNAME = socket.gethostname()
@@ -26,38 +27,6 @@ USERAGENT = 'gnsq/%s' % __version__
 
 class Nsqd(HTTPClient):
     """Low level object representing a TCP or HTTP connection to nsqd.
-
-    **Signals:**
-
-    .. data:: on_message(conn, message)
-        :noindex:
-
-        Sent when a message frame is received.
-
-    .. data:: on_finish(conn, message_id)
-        :noindex:
-
-        Sent when a message is successfully finished.
-
-    .. data:: on_requeue(conn, message_id, timeout)
-        :noindex:
-
-        Sent when a message is has been requeued.
-
-    .. data:: on_response(conn, response)
-        :noindex:
-
-        Sent when a response frame is received.
-
-    .. data:: on_error(conn, error)
-        :noindex:
-
-        Sent when an error frame is received.
-
-    .. data:: on_close(conn)
-        :noindex:
-
-        Sent when the stream is closed.
 
     :param address: the host or ip address of the nsqd
 
@@ -151,18 +120,67 @@ class Nsqd(HTTPClient):
         self.in_flight = 0
         self.max_ready_count = 2500
 
-        self.on_response = blinker.Signal()
-        self.on_error = blinker.Signal()
-        self.on_message = blinker.Signal()
-        self.on_finish = blinker.Signal()
-        self.on_requeue = blinker.Signal()
-        self.on_close = blinker.Signal()
-
         self._frame_handlers = {
             nsq.FRAME_TYPE_RESPONSE: self.handle_response,
             nsq.FRAME_TYPE_ERROR: self.handle_error,
             nsq.FRAME_TYPE_MESSAGE: self.handle_message
         }
+
+    @cached_property
+    def on_message(self):
+        """Emitted when a message frame is received.
+
+        The signal sender is the connection and the `message` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted when a message frame is received.')
+
+    @cached_property
+    def on_response(self):
+        """Emitted when a response frame is received.
+
+        The signal sender is the connection and the `response` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted when a response frame is received.')
+
+    @cached_property
+    def on_error(self):
+        """Emitted when an error frame is received.
+
+        The signal sender is the connection and the `error` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted when a error frame is received.')
+
+    @cached_property
+    def on_finish(self):
+        """Emitted after :meth:`finish`.
+
+        Sent after a message owned by this connection is successfully finished.
+        The signal sender is the connection and the `message_id` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted after the a message is finished.')
+
+    @cached_property
+    def on_requeue(self):
+        """Emitted after :meth:`requeue`.
+
+        Sent after a message owned by this connection is requeued. The signal
+        sender is the connection and the `message_id` and `timeout` are sent as
+        arguments.
+        """
+        return blinker.Signal(doc='Emitted after the a message is requeued.')
+
+    @cached_property
+    def on_close(self):
+        """Emitted after :meth:`close_stream`.
+
+        Sent after the connection socket has closed. The signal sender is the
+        connection.
+        """
+        return blinker.Signal(doc='Emitted after the connection is closed.')
 
     @property
     def is_connected(self):
