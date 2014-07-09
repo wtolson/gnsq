@@ -37,6 +37,24 @@ Or even better, if you have virtualenvwrapper installed::
     $ mkvirtualenv gnsq
     $ pip install gnsq
 
+Currently there is support for Python 2.6 and Python 2.7. Support for Python 3
+is dependent on `gevent support <https://github.com/surfly/gevent/issues/38>`_.
+
+Dependencies
+~~~~~~~~~~~~
+
+Snappy support depends on the `python-snappy` package which in turn depends on
+libsnappy::
+
+    # Debian
+    $ sudo apt-get install libsnappy-dev
+
+    # Or OS X
+    $ brew install snappy
+
+    # And then install python-snappy
+    $ pip install python-snappy
+
 Usage
 -----
 
