@@ -77,11 +77,11 @@ class Reader(object):
         message
 
     :param lookupd_poll_interval: the amount of time in seconds between querying
-        all of the supplied nsqlookupd instances.  a random amount of time based
-        on thie value will be initially introduced in order to add jitter when
+        all of the supplied nsqlookupd instances.  A random amount of time based
+        on this value will be initially introduced in order to add jitter when
         multiple readers are running
 
-    :param lookupd_poll_jitter: The maximum fractional amount of jitter to add
+    :param lookupd_poll_jitter: the maximum fractional amount of jitter to add
         to the lookupd pool loop. This helps evenly distribute requests even if
         multiple consumers restart at the same time.
 
@@ -218,8 +218,9 @@ class Reader(object):
         """Emitted after a giving up on a message.
 
         Emitted when a message has exceeded the maximum number of attempts
-        (`max_tries`) and will no longer be requeued. The signal sender is the
-        reader and the `message` is sent as an argument.
+        (`max_tries`) and will no longer be requeued. This is useful to perform
+        tasks such as writing to disk, collecting statistics etc. The signal
+        sender is the reader and the `message` is sent as an argument.
         """
         return blinker.Signal(doc='Sent after a giving up on a message.')
 
@@ -316,7 +317,11 @@ class Reader(object):
 
     @property
     def is_starved(self):
-        """Check if reader is currently starved for messages."""
+        """Evaluate whether any of the connections are starved.
+
+        This property should be used by message handlers to reliably identify
+        when to process a batch of messages.
+        """
         for conn in self.conns:
             if conn.in_flight >= max(conn.last_ready * 0.85, 1):
                 return True
