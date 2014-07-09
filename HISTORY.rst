@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.3 (TBD)
+0.1.3 (2014-07-08)
 ~~~~~~~~~~~~~~~~~~
 
 * Block as expected on start, even if already started.
