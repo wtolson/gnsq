@@ -14,8 +14,13 @@ gnsq
 
 A `gevent`_ based `NSQ`_ driver for Python.
 
+Features include:
+
 * Free software: BSD license
 * Documentation: http://gnsq.readthedocs.org.
+* Battle tested on billions and billions of messages `</sagan>`.
+* Based on `gevent`_ for fast concurrent networking.
+* Fast and flexible signals with :doc:`Blinker <signals>`.
 
 Installation
 ------------

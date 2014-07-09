@@ -8,18 +8,14 @@ try:
 except ImportError:
     import json  # pyflakes.ignore
 
+from .decorators import cached_property
 from .errors import NSQHttpError
 
 
 class HTTPClient(object):
-    base_url = None
-    __http = None
-
-    @property
+    @cached_property
     def http(self):
-        if self.__http is None:
-            self.__http = urllib3.connection_from_url(url=self.base_url)
-        return self.__http
+        return urllib3.connection_from_url(url=self.base_url)
 
     def http_request(self, method, url, **kwargs):
         response = self.http.request_encode_url(method, url, **kwargs)

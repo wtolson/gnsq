@@ -249,6 +249,7 @@ def test_backoff():
             channel='test',
             nsqd_tcp_addresses=[server.tcp_address],
             max_in_flight=100,
+            message_handler=lambda reader, message: None
         )
 
         reader.start(block=False)
@@ -259,3 +260,9 @@ def test_backoff():
 
         reader.complete_backoff()
         assert reader.state == states.RUNNING
+
+
+def test_no_handlers():
+    reader = Reader('test', 'test', 'localhost:4150')
+    with pytest.raises(RuntimeError):
+        reader.start(block=False)

@@ -4,6 +4,7 @@ import struct
 import json
 import pytest
 
+from itertools import product
 from gnsq import Nsqd, Message, states, errors
 from gnsq import protocol as nsq
 from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
@@ -298,105 +299,52 @@ def test_sync_heartbeat():
         assert data == '_heartbeat_'
 
 
+@pytest.mark.parametrize('tls,deflate,snappy', product((True, False), repeat=3))
 @pytest.mark.slow
-def test_tls():
+def test_socket_upgrades(tls, deflate, snappy):
     with NsqdIntegrationServer() as server:
-        conn = Nsqd(
-            address=server.address,
-            tcp_port=server.tcp_port,
-            tls_v1=True,
-            tls_options={
-                'keyfile': server.tls_key,
-                'certfile': server.tls_cert,
-            }
-        )
+        options = {
+            'address': server.address,
+            'tcp_port': server.tcp_port,
+            'deflate': deflate,
+            'snappy': snappy,
+        }
+
+        if tls:
+            options.update({
+                'tls_v1': True,
+                'tls_options': {
+                    'keyfile': server.tls_key,
+                    'certfile': server.tls_cert,
+                }
+            })
+
+        conn = Nsqd(**options)
         conn.connect()
         assert conn.state == states.CONNECTED
 
-        resp = conn.identify()
-        assert isinstance(resp, dict)
-        assert resp['tls_v1'] is True
-        assert isinstance(conn.stream.socket, SSLSocket)
-
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
-
-        conn.publish('topic', 'sup')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
-
-        conn.subscribe('topic', 'channel')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
-
-        conn.ready(1)
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_MESSAGE
-        assert data.body == 'sup'
-
-        conn.close_stream()
-
-
-@pytest.mark.slow
-def test_deflate():
-    with NsqdIntegrationServer() as server:
-        conn = Nsqd(
-            address=server.address,
-            tcp_port=server.tcp_port,
-            deflate=True
-        )
-        conn.connect()
-        assert conn.state == states.CONNECTED
+        if deflate and snappy:
+            with pytest.raises(errors.NSQErrorCode):
+                conn.identify()
+            return
 
         resp = conn.identify()
         assert isinstance(resp, dict)
-        assert resp['deflate'] is True
-        assert isinstance(conn.stream.socket, DefalteSocket)
 
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        assert resp['tls_v1'] is tls
+        assert resp['deflate'] is deflate
+        assert resp['snappy'] is snappy
 
-        conn.publish('topic', 'sup')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        if tls and (deflate or snappy):
+            assert isinstance(conn.stream.socket._socket, SSLSocket)
+        elif tls:
+            assert isinstance(conn.stream.socket, SSLSocket)
 
-        conn.subscribe('topic', 'channel')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        if deflate:
+            assert isinstance(conn.stream.socket, DefalteSocket)
 
-        conn.ready(1)
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_MESSAGE
-        assert data.body == 'sup'
-
-        conn.close_stream()
-
-
-@pytest.mark.slow
-def test_snappy():
-    with NsqdIntegrationServer() as server:
-        conn = Nsqd(
-            address=server.address,
-            tcp_port=server.tcp_port,
-            snappy=True
-        )
-        conn.connect()
-        assert conn.state == states.CONNECTED
-
-        resp = conn.identify()
-        assert isinstance(resp, dict)
-        assert resp['snappy'] is True
-        assert isinstance(conn.stream.socket, SnappySocket)
-
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        if snappy:
+            assert isinstance(conn.stream.socket, SnappySocket)
 
         conn.publish('topic', 'sup')
         frame, data = conn.read_response()

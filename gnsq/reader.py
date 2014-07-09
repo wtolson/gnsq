@@ -16,6 +16,7 @@ from .lookupd import Lookupd
 from .nsqd import Nsqd
 from .backofftimer import BackoffTimer
 from .states import INIT, RUNNING, BACKOFF, THROTTLED, CLOSED
+from .decorators import cached_property
 
 from .errors import (
     NSQException,
@@ -39,46 +40,6 @@ class Reader(object):
 
     The Reader will handle backing off of failed messages up to a configurable
     `max_interval` as well as automatically reconnecting to dropped connections.
-
-    **Signals:**
-
-    .. data:: on_message(reader, message)
-        :noindex:
-
-        Sent when the reader receives a message. The `message_handler` param is
-        connected to this signal.
-
-    .. data:: on_finish(reader, message_id)
-        :noindex:
-
-        Sent when a message is successfully finished.
-
-    .. data:: on_requeue(reader, message_id, timeout)
-        :noindex:
-
-        Sent when a message is requeued.
-
-    .. data:: on_giving_up(reader, message)
-        :noindex:
-
-        Sent when a message has exceeded the maximum number of attempts
-        (`max_tries`) and will no longer be requeued.
-
-    .. data:: on_response(reader, response)
-        :noindex:
-
-        Sent when the reader receives a response frame from a connection.
-
-    .. data:: on_error(reader, error)
-        :noindex:
-
-        Sent when the reader receives an error frame from a connection.
-
-    .. data:: on_exception(reader, message, error)
-        :noindex:
-
-        Sent when an exception is caught while handling a message.
-
 
     :param topic: specifies the desired NSQ topic
 
@@ -180,24 +141,8 @@ class Reader(object):
         else:
             self.name = '%s.%s.%s' % (__name__, self.topic, self.channel)
 
-        self._need_ready_redistributed = False
-        self.last_random_ready = time.time()
-        self.state = INIT
-
-        self.logger = logging.getLogger(self.name)
-        self.conn_backoffs = defaultdict(self.create_backoff)
-        self.backoff = self.create_backoff()
-
-        self.on_response = blinker.Signal()
-        self.on_error = blinker.Signal()
-        self.on_message = blinker.Signal()
-        self.on_finish = blinker.Signal()
-        self.on_requeue = blinker.Signal()
-        self.on_giving_up = blinker.Signal()
-        self.on_exception = blinker.Signal()
-
         if message_handler is not None:
-            self.on_message.connect(message_handler)
+            self.on_message.connect(message_handler, weak=False)
 
         if max_concurrency < 0:
             self.max_concurrency = cpu_count()
@@ -209,11 +154,91 @@ class Reader(object):
         else:
             self.queue = None
 
+        self._need_ready_redistributed = False
+        self.last_random_ready = time.time()
+        self.state = INIT
+
+        self.logger = logging.getLogger(self.name)
+        self.conn_backoffs = defaultdict(self.create_backoff)
+        self.backoff = self.create_backoff()
+
         self.conns = set()
         self.pending = set()
 
         self.workers = []
         self.conn_workers = {}
+
+    @cached_property
+    def on_message(self):
+        """Emitted when a message is received.
+
+        The signal sender is the reader and the `message` is sent as an
+        argument. The `message_handler` param is connected to this signal.
+        """
+        return blinker.Signal(doc='Emitted when a message is received.')
+
+    @cached_property
+    def on_response(self):
+        """Emitted when a response is received.
+
+        The signal sender is the reader and the `response` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted when a response is received.')
+
+    @cached_property
+    def on_error(self):
+        """Emitted when an error is received.
+
+        The signal sender is the reader and the `error` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted when a error is received.')
+
+    @cached_property
+    def on_finish(self):
+        """Emitted after a message is successfully finished.
+
+        The signal sender is the reader and the `message_id` is sent as an
+        argument.
+        """
+        return blinker.Signal(doc='Emitted after the a message is finished.')
+
+    @cached_property
+    def on_requeue(self):
+        """Emitted after a message is requeued.
+
+        The signal sender is the reader and the `message_id` and `timeout`
+        are sent as arguments.
+        """
+        return blinker.Signal(doc='Emitted after the a message is requeued.')
+
+    @cached_property
+    def on_giving_up(self):
+        """Emitted after a giving up on a message.
+
+        Emitted when a message has exceeded the maximum number of attempts
+        (`max_tries`) and will no longer be requeued. The signal sender is the
+        reader and the `message` is sent as an argument.
+        """
+        return blinker.Signal(doc='Sent after a giving up on a message.')
+
+    @cached_property
+    def on_exception(self):
+        """Emitted when an exception is caught while handling a message.
+
+        The signal sender is the reader and the `message` and `error` are sent
+        as arguments.
+        """
+        return blinker.Signal(doc='Emitted when an exception is caught.')
+
+    @cached_property
+    def on_close(self):
+        """Emitted after :meth:`close`.
+
+        The signal sender is the reader.
+        """
+        return blinker.Signal(doc='Emitted after the reader is closed.')
 
     def _get_nsqds(self, nsqd_tcp_addresses):
         if isinstance(nsqd_tcp_addresses, basestring):
@@ -239,7 +264,12 @@ class Reader(object):
         """Start discovering and listing to connections."""
         if self.state != INIT:
             self.logger.warn('%s all ready started' % self.name)
+            if block:
+                self.join()
             return
+
+        if not any(self.on_message.receivers_for(blinker.ANY)):
+            raise RuntimeError('no receivers connected to on_message')
 
         self.logger.debug('starting %s...' % self.name)
         self.state = RUNNING
@@ -271,6 +301,8 @@ class Reader(object):
         self.logger.debug('closing %d connection(s)' % len(self.conns))
         for conn in self.conns:
             conn.close_stream()
+
+        self.on_close.send(self)
 
     def join(self, timeout=None, raise_error=False):
         """Block until all connections have closed and workers stopped."""
