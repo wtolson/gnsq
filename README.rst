@@ -69,7 +69,14 @@ To use gnsq in a project::
 
     reader.start()
 
+Contributing
+------------
+
+Feedback, issues, and contributions are always gratefully welcomed. See the
+`contributing guidelines`_ for details on how to help.
+
 
 .. _gevent: http://gevent.org/
 .. _NSQ: http://nsq.io/
 .. _Blinker: http://pythonhosted.org/blinker/
+.. _contributing guidelines: https://github.com/wtolson/gnsq/blob/master/CONTRIBUTING.rst
