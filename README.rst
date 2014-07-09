@@ -20,7 +20,7 @@ Features include:
 * Documentation: http://gnsq.readthedocs.org.
 * Battle tested on billions and billions of messages `</sagan>`.
 * Based on `gevent`_ for fast concurrent networking.
-* Fast and flexible signals with :doc:`Blinker <signals>`.
+* Fast and flexible signals with `Blinker`_.
 
 Installation
 ------------
@@ -51,3 +51,4 @@ To use gnsq in a project::
 
 .. _gevent: http://gevent.org/
 .. _NSQ: http://nsq.io/
+.. _Blinker: http://pythonhosted.org/blinker/
