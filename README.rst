@@ -17,10 +17,13 @@ A `gevent`_ based `NSQ`_ driver for Python.
 Features include:
 
 * Free software: BSD license
-* Documentation: http://gnsq.readthedocs.org.
-* Battle tested on billions and billions of messages `</sagan>`.
-* Based on `gevent`_ for fast concurrent networking.
-* Fast and flexible signals with `Blinker`_.
+* Documentation: http://gnsq.readthedocs.org
+* Battle tested on billions and billions of messages `</sagan>`
+* Based on `gevent`_ for fast concurrent networking
+* Fast and flexible signals with `Blinker`_
+* Automatic nsqlookupd discovery and back-off
+* Support for TLS, DEFLATE, and Snappy
+* Full HTTP clients for both nsqd and nsqlookupd
 
 Installation
 ------------
