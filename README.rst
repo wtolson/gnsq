@@ -12,7 +12,7 @@ gnsq
         :target: https://pypi.python.org/pypi/gnsq
 
 
-A `gevent`_ based `NSQ`_ driver for Python.
+A `gevent`_ based python client for `NSQ`_.
 
 Features include:
 
