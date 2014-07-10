@@ -19,42 +19,45 @@ def pytest_generate_tests(metafunc):
     mpub_body = struct.pack('>l', len(msgs)) + ''.join(struct.pack('>l', len(m)) + m for m in msgs)
     if metafunc.function == test_command:
         for cmd_method, kwargs, result in [
-                (nsq.identify,
+                ('identify',
                     {'data': identify_dict_ascii},
                     'IDENTIFY\n' + struct.pack('>l', len(identify_body_ascii)) +
                     identify_body_ascii),
-                (nsq.identify,
+                ('identify',
                     {'data': identify_dict_unicode},
                     'IDENTIFY\n' + struct.pack('>l', len(identify_body_unicode)) +
                     identify_body_unicode),
-                (nsq.subscribe,
+                ('auth',
+                    {'secret': 'secret'},
+                    'AUTH\n' + struct.pack('>l', 6) + 'secret'),
+                ('subscribe',
                     {'topic_name': 'test_topic', 'channel_name': 'test_channel'},
                     'SUB test_topic test_channel\n'),
-                (nsq.finish,
+                ('finish',
                     {'message_id': 'test'},
                     'FIN test\n'),
-                (nsq.finish,
+                ('finish',
                     {'message_id': u'\u2020est \xfcn\xee\xe7\xf8\u2202\xe9'},
                     'FIN \xe2\x80\xa0est \xc3\xbcn\xc3\xae\xc3\xa7\xc3\xb8\xe2\x88\x82\xc3\xa9\n'),
-                (nsq.requeue,
+                ('requeue',
                     {'message_id': 'test'},
                     'REQ test 0\n'),
-                (nsq.requeue,
+                ('requeue',
                     {'message_id': 'test', 'timeout': 60},
                     'REQ test 60\n'),
-                (nsq.touch,
+                ('touch',
                     {'message_id': 'test'},
                     'TOUCH test\n'),
-                (nsq.ready,
+                ('ready',
                     {'count': 100},
                     'RDY 100\n'),
-                (nsq.nop,
+                ('nop',
                     {},
                     'NOP\n'),
-                (nsq.publish,
+                ('publish',
                     {'topic_name': 'test', 'data': msgs[0]},
                     'PUB test\n' + struct.pack('>l', len(msgs[0])) + msgs[0]),
-                (nsq.multipublish,
+                ('multipublish',
                     {'topic_name': 'test', 'messages': msgs},
                     'MPUB test\n' + struct.pack('>l', len(mpub_body)) + mpub_body)
                 ]:
@@ -62,7 +65,7 @@ def pytest_generate_tests(metafunc):
 
 
 def test_command(cmd_method, kwargs, result):
-    assert cmd_method(**kwargs) == result
+    assert getattr(nsq, cmd_method)(**kwargs) == result
 
 
 def test_unicode_body():

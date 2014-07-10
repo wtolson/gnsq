@@ -196,25 +196,28 @@ def test_multipublish():
         conn.multipublish('topic', ['sup', 'sup'])
 
 
-@pytest.mark.parametrize('error,error_class,fatal', [
-    ('E_INVALID', errors.NSQInvalid, True),
-    ('E_BAD_BODY', errors.NSQBadBody, True),
-    ('E_BAD_TOPIC', errors.NSQBadTopic, True),
-    ('E_BAD_CHANNEL', errors.NSQBadChannel, True),
-    ('E_BAD_MESSAGE', errors.NSQBadMessage, True),
-    ('E_PUT_FAILED', errors.NSQPutFailed, True),
-    ('E_PUB_FAILED', errors.NSQPubFailed, True),
-    ('E_MPUB_FAILED', errors.NSQMPubFailed, True),
-    ('E_FIN_FAILED', errors.NSQFinishFailed, False),
-    ('E_REQ_FAILED', errors.NSQRequeueFailed, False),
-    ('E_TOUCH_FAILED', errors.NSQTouchFailed, False),
-    ('unknown error', errors.NSQException, True),
+@pytest.mark.parametrize('error_msg,error,fatal', [
+    ('E_INVALID cannot SUB in current state', 'NSQInvalid', True),
+    ('E_BAD_BODY MPUB failed to read body size', 'NSQBadBody', True),
+    ('E_BAD_TOPIC SUB topic name oh my god is not valid', 'NSQBadTopic', True),
+    ('E_BAD_CHANNEL SUB channel name !! is not valid', 'NSQBadChannel', True),
+    ('E_BAD_MESSAGE PUB failed to read message body', 'NSQBadMessage', True),
+    ('E_PUT_FAILED PUT failed', 'NSQPutFailed', True),
+    ('E_PUB_FAILED PUB failed', 'NSQPubFailed', True),
+    ('E_MPUB_FAILED MPUB failed', 'NSQMPubFailed', True),
+    ('E_AUTH_DISABLED AUTH Disabled', 'NSQAuthDisabled', True),
+    ('E_AUTH_FAILED AUTH failed', 'NSQAuthFailed', True),
+    ('E_UNAUTHORIZED AUTH No authorizations found', 'NSQUnauthorized', True),
+    ('E_FIN_FAILED FIN failed', 'NSQFinishFailed', False),
+    ('E_REQ_FAILED REQ failed', 'NSQRequeueFailed', False),
+    ('E_TOUCH_FAILED TOUCH failed', 'NSQTouchFailed', False),
+    ('some unknown error', 'NSQException', True),
 ])
-def test_error(error, error_class, fatal):
+def test_error(error_msg, error, fatal):
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == '  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error))
+        socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -222,7 +225,7 @@ def test_error(error, error_class, fatal):
 
         frame, resp = conn.read_response()
         assert frame == nsq.FRAME_TYPE_ERROR
-        assert isinstance(resp, error_class)
+        assert isinstance(resp, getattr(errors, error))
         assert conn.is_connected != fatal
 
 
@@ -298,6 +301,59 @@ def test_sync_heartbeat():
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
         assert data == '_heartbeat_'
+
+
+def test_auth():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        assert socket.recv(5) == 'AUTH\n'
+
+        assert nsq.unpack_size(socket.recv(4)) == 6
+        assert socket.recv(6) == 'secret'
+
+    with handle as server:
+        conn = Nsqd(
+            address='127.0.0.1',
+            tcp_port=server.server_port,
+            auth_secret='secret'
+        )
+
+        conn.connect()
+        conn.auth()
+
+
+@pytest.mark.slow
+def test_server_auth():
+    with NsqdIntegrationServer() as server:
+        conn = Nsqd(
+            address='127.0.0.1',
+            tcp_port=server.tcp_address,
+            auth_secret='secret',
+        )
+        conn.connect()
+        assert conn.state == states.CONNECTED
+
+        resp = conn.identify()
+        assert isinstance(resp, dict)
+        assert resp['auth_required'] is True
+
+        conn.publish('topic', 'sup')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.subscribe('topic', 'channel')
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_RESPONSE
+        assert data == 'OK'
+
+        conn.ready(1)
+        frame, data = conn.read_response()
+        assert frame == nsq.FRAME_TYPE_MESSAGE
+        assert data.body == 'sup'
+
+        conn.close_stream()
 
 
 @pytest.mark.parametrize('tls,deflate,snappy', product((True, False), repeat=3))
