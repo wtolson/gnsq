@@ -2,6 +2,7 @@ from __future__ import with_statement
 
 import struct
 import json
+import ssl
 import pytest
 
 from itertools import product
@@ -325,6 +326,11 @@ def test_socket_upgrades(tls, deflate, snappy):
 
         if deflate and snappy:
             with pytest.raises(errors.NSQErrorCode):
+                conn.identify()
+            return
+
+        if tls and server.version < (0, 2, 28):
+            with pytest.raises(ssl.SSLError):
                 conn.identify()
             return
 
