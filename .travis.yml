@@ -6,12 +6,17 @@ python:
   - "2.7"
   - "2.6"
 
+env:
+  - NSQ_VERSION=0.2.24 GO_VERSION=1.2
+  - NSQ_VERSION=0.2.27 GO_VERSION=1.2
+  - NSQ_VERSION=0.2.28 GO_VERSION=1.2.1
+
 install:
   - sudo apt-get install libsnappy-dev libevent-dev
   - pip install -e .
   - pip install pytest python-snappy
-  - wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.2.28.linux-amd64.go1.2.1.tar.gz
-  - tar zxvf nsq-0.2.28.linux-amd64.go1.2.1.tar.gz
-  - sudo cp nsq-0.2.28.linux-amd64.go1.2.1/bin/nsqd nsq-0.2.28.linux-amd64.go1.2.1/bin/nsqlookupd /usr/local/bin
+  - wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION.tar.gz
+  - tar zxvf nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION.tar.gz
+  - sudo cp nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqd nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqlookupd /usr/local/bin
 
 script: py.test
