@@ -1,3 +1,4 @@
+import os
 import random
 import time
 import shutil
@@ -34,6 +35,11 @@ class BaseIntegrationServer(object):
         self.tcp_port = tcp_port
         self.http_port = http_port
         self.data_path = tempfile.mkdtemp()
+
+    @property
+    def version(self):
+        version = os.environ.get('NSQ_VERSION', '0.2.28')
+        return tuple([int(v) for v in version.split('.')])
 
     @property
     def cmd(self):
@@ -94,11 +100,13 @@ class NsqdIntegrationServer(BaseIntegrationServer):
             'nsqd',
             '--tcp-address', self.tcp_address,
             '--http-address', self.http_address,
-            '--https-address', self.https_address,
             '--data-path', self.data_path,
             '--tls-cert', self.tls_cert,
             '--tls-key', self.tls_key,
         ]
+
+        if self.version >= (0, 2, 28):
+            cmd.extend(['--https-address', self.https_address])
 
         if self.lookupd:
             cmd.extend(['--lookupd-tcp-address', self.lookupd])
