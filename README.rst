@@ -80,4 +80,4 @@ environment.
 .. _gevent: http://gevent.org/
 .. _NSQ: http://nsq.io/
 .. _Blinker: http://pythonhosted.org/blinker/
-.. _contributing guidelines: https://github.com/wtolson/gnsq/blob/master/CONTRIBUTING.rst
+.. _contributing guide: https://github.com/wtolson/gnsq/blob/master/CONTRIBUTING.rst
