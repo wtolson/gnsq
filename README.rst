@@ -73,7 +73,8 @@ Contributing
 ------------
 
 Feedback, issues, and contributions are always gratefully welcomed. See the
-`contributing guidelines`_ for details on how to help.
+`contributing guide`_ for details on how to help and setup a development
+environment.
 
 
 .. _gevent: http://gevent.org/
