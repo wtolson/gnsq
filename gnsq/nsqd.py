@@ -187,6 +187,15 @@ class Nsqd(HTTPClient):
         """Check if the client is currently connected."""
         return self.state == CONNECTED
 
+    @property
+    def is_starved(self):
+        """Evaluate whether the connection is starved.
+
+        This property should be used by message handlers to reliably identify
+        when to process a batch of messages.
+        """
+        return self.in_flight >= max(self.last_ready * 0.85, 1)
+
     def connect(self):
         """Initialize connection to the nsqd."""
         if self.state not in (INIT, DISCONNECTED):

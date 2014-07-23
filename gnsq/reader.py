@@ -322,10 +322,7 @@ class Reader(object):
         This property should be used by message handlers to reliably identify
         when to process a batch of messages.
         """
-        for conn in self.conns:
-            if conn.in_flight >= max(conn.last_ready * 0.85, 1):
-                return True
-        return False
+        return any(conn.is_starved for conn in self.conns)
 
     @property
     def connection_max_in_flight(self):
