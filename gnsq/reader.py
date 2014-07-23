@@ -347,7 +347,8 @@ class Reader(object):
         if self.state == THROTTLED and self.total_in_flight_or_ready:
             return
 
-        if (self.total_in_flight_or_ready + count) > self.max_in_flight:
+        total = self.total_ready_count - conn.ready_count + count
+        if total > self.max_in_flight:
             if not (conn.ready_count or conn.in_flight):
                 self.logger.debug('[%s] sending later' % conn)
                 gevent.spawn_later(5, self.send_ready, conn, count)
@@ -465,7 +466,7 @@ class Reader(object):
         if self.state == THROTTLED:
             max_in_flight = 1 - self.total_in_flight_or_ready
         else:
-            max_in_flight = self.max_in_flight - self.total_in_flight_or_ready
+            max_in_flight = self.max_in_flight - self.total_ready_count
 
         if max_in_flight <= 0:
             return
