@@ -349,9 +349,11 @@ class Reader(object):
 
         if (self.total_in_flight_or_ready + count) > self.max_in_flight:
             if not (conn.ready_count or conn.in_flight):
+                self.logger.debug('[%s] sending later' % conn)
                 gevent.spawn_later(5, self.send_ready, conn, count)
             return
 
+        self.logger.debug('[%s] sending RDY %d' % (conn, count))
         conn.ready(count)
 
     def query_nsqd(self):
@@ -630,6 +632,7 @@ class Reader(object):
 
     def handle_message(self, conn, message):
         self.logger.debug('[%s] got message: %s' % (conn, message.id))
+        self.update_ready(conn)
 
         if self.max_tries and message.attempts > self.max_tries:
             msg = "giving up on message '%s' after max tries %d"
