@@ -296,8 +296,7 @@ class Reader(object):
         self.state = CLOSED
 
         self.logger.debug('closing %d worker(s)' % len(self.workers))
-        for worker in self.workers:
-            worker.kill(block=False)
+        gevent.killall(self.workers, block=False)
 
         self.logger.debug('closing %d connection(s)' % len(self.conns))
         for conn in self.conns:
