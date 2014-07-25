@@ -4,7 +4,7 @@ History
 -------
 
 0.1.4 (2014-07-24)
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 * Preemptively update ready count.
 * Dependency and contributing documentation.
 * Support for nsq back to 0.2.24.
