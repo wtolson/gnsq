@@ -13,7 +13,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 setup(
     name='gnsq',
-    version='0.1.3',
+    version='0.1.4',
     description='A gevent based python client for NSQ.',
     long_description=readme + '\n\n' + history,
     author='Trevor Olson',
