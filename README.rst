@@ -50,7 +50,7 @@ To use gnsq in a project::
 
     @reader.on_message.connect
     def handler(reader, message):
-        do_work(message.body)
+        print 'got message:', message.body
 
     reader.start()
 
