@@ -20,4 +20,4 @@ install:
   - tar zxvf nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION.tar.gz
   - sudo cp nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqd nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqlookupd /usr/local/bin
 
-script: py.test
+script: py.test tests
