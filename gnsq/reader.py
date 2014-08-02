@@ -564,7 +564,7 @@ class Reader(object):
             self.send_ready(conn, 1)
 
         except NSQException as error:
-            self.logger.debug('[%s] connection failed (%r)' % (conn, error))
+            self.logger.warn('[%s] connection failed (%r)' % (conn, error))
             self.handle_connection_failure(conn)
             return
 
