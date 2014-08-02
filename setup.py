@@ -30,6 +30,9 @@ setup(
         'blinker',
         'urllib3',
     ],
+    extras_require={
+        'snappy': ['python-snappy'],
+    },
     license="BSD",
     zip_safe=False,
     keywords='gnsq',

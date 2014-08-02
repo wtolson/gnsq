@@ -6,6 +6,7 @@ History
 0.1.5 (TBD)
 ~~~~~~~~~~~~~~~~~~
 * Warn on connection failure.
+* Add extra requires for snappy.
 
 0.1.4 (2014-07-24)
 ~~~~~~~~~~~~~~~~~~
