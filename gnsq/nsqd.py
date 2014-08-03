@@ -71,6 +71,9 @@ class Nsqd(HTTPClient):
         less than 100 and the client will receive that percentage of the message
         traffic. (requires nsqd 0.2.25+)
 
+    :param auth_secret: a string passed when using nsq auth (requires
+        nsqd 0.2.29+)
+
     :param user_agent: a string identifying the agent for this client in the
         spirit of HTTP (default: ``<client_library_name>/<version>``) (requires
         nsqd 0.2.25+)
@@ -92,6 +95,7 @@ class Nsqd(HTTPClient):
         deflate=False,
         deflate_level=6,
         sample_rate=0,
+        auth_secret=None,
         user_agent=USERAGENT,
     ):
         self.address = address
@@ -110,6 +114,7 @@ class Nsqd(HTTPClient):
         self.deflate = deflate
         self.deflate_level = deflate_level
         self.sample_rate = sample_rate
+        self.auth_secret = auth_secret
         self.user_agent = user_agent
 
         self.state = INIT
@@ -172,6 +177,17 @@ class Nsqd(HTTPClient):
         arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
+
+    @cached_property
+    def on_auth(self):
+        """Emitted after the connection is successfully authenticated.
+
+        The signal sender is the connection and the parsed `response` is sent as
+        arguments.
+        """
+        return blinker.Signal(
+            doc='Emitted after the connection is successfully authenticated.'
+        )
 
     @cached_property
     def on_close(self):
@@ -296,17 +312,28 @@ class Nsqd(HTTPClient):
         while self.is_connected:
             self.read_response()
 
+    def check_ok(self, expected='OK'):
+        frame, data = self.read_response()
+        if frame == nsq.FRAME_TYPE_ERROR:
+            raise data
+
+        if frame != nsq.FRAME_TYPE_RESPONSE:
+            raise errors.NSQException('expected response frame')
+
+        if data != expected:
+            raise errors.NSQException('unexpected response %r' % data)
+
     def upgrade_to_tls(self):
         self.stream.upgrade_to_tls(**self.tls_options)
-        return self.read_response()
+        self.check_ok()
 
     def upgrade_to_snappy(self):
         self.stream.upgrade_to_snappy()
-        return self.read_response()
+        self.check_ok()
 
     def upgrade_to_defalte(self):
         self.stream.upgrade_to_defalte(self.deflate_level)
-        return self.read_response()
+        self.check_ok()
 
     def identify(self):
         """Update client metadata on the server and negotiate features.
@@ -372,7 +399,28 @@ class Nsqd(HTTPClient):
             self.deflate_level = data.get('deflate_level', self.deflate_level)
             self.upgrade_to_defalte()
 
+        if self.auth_secret and data.get('auth_required'):
+            self.auth()
+
         return data
+
+    def auth(self):
+        """Send authorization secret to nsqd."""
+        self.send(nsq.auth(self.auth_secret))
+        frame, data = self.read_response()
+
+        if frame == nsq.FRAME_TYPE_ERROR:
+            raise data
+
+        try:
+            response = json.loads(data)
+        except ValueError:
+            self.close_stream()
+            msg = 'failed to parse AUTH response JSON from nsqd: %r'
+            raise errors.NSQException(msg % data)
+
+        self.on_auth.send(self, response=response)
+        return response
 
     def subscribe(self, topic, channel):
         """Subscribe to a nsq `topic` and `channel`."""

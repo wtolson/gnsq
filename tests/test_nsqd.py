@@ -324,7 +324,7 @@ def test_auth():
 
         conn.connect()
         resp = conn.auth()
-        assert resp['identify'] == 'awesome'
+        assert resp['identity'] == 'awesome'
 
 
 def test_identify_auth():
@@ -354,22 +354,18 @@ def test_identify_auth():
             auth_secret='secret'
         )
 
-        server.auth_was_called = False
-        _auth = conn.auth
+        @conn.on_auth.connect
+        def assert_auth(conn, response):
+            assert assert_auth.was_called is False
+            assert_auth.was_called = True
+            assert response['identity'] == 'awesome'
 
-        def auth():
-            assert server.auth_was_called is False
-            server.auth_was_called = True
-
-            resp = _auth()
-            assert resp['identify'] == 'awesome'
-
-        conn.auth = auth
+        assert_auth.was_called = False
         conn.connect()
-
         resp = conn.identify()
+
         assert resp['auth_required']
-        assert server.auth_was_called
+        assert assert_auth.was_called
 
 
 @pytest.mark.parametrize('tls,deflate,snappy', product((True, False), repeat=3))

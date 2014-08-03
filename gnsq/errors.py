@@ -69,6 +69,18 @@ class NSQMPubFailed(NSQErrorCode):
     """E_MPUB_FAILED"""
 
 
+class NSQAuthDisabled(NSQErrorCode):
+    """E_AUTH_DISABLED"""
+
+
+class NSQAuthFailed(NSQErrorCode):
+    """E_AUTH_FAILED"""
+
+
+class NSQUnauthorized(NSQErrorCode):
+    """E_UNAUTHORIZED"""
+
+
 class NSQFinishFailed(NSQErrorCode):
     """E_FIN_FAILED"""
     fatal = False
@@ -94,6 +106,9 @@ ERROR_CODES = {
     'E_PUB_FAILED': NSQPubFailed,
     'E_MPUB_FAILED': NSQMPubFailed,
     'E_FINISH_FAILED': NSQFinishFailed,
+    'E_AUTH_DISABLED': NSQAuthDisabled,
+    'E_AUTH_FAILED': NSQAuthFailed,
+    'E_UNAUTHORIZED': NSQUnauthorized,
     'E_FIN_FAILED': NSQFinishFailed,
     'E_REQUEUE_FAILED': NSQRequeueFailed,
     'E_REQ_FAILED': NSQRequeueFailed,

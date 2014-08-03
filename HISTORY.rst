@@ -3,10 +3,11 @@
 History
 -------
 
-0.1.5 (TBD)
+0.2.0 (TBD)
 ~~~~~~~~~~~~~~~~~~
 * Warn on connection failure.
 * Add extra requires for snappy.
+* Add support for nsq auth protocal.
 
 0.1.4 (2014-07-24)
 ~~~~~~~~~~~~~~~~~~

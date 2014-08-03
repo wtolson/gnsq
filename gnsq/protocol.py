@@ -116,6 +116,10 @@ def identify(data):
     return _command('IDENTIFY', json.dumps(data))
 
 
+def auth(secret):
+    return _command('AUTH', secret)
+
+
 def subscribe(topic_name, channel_name):
     assert_valid_topic_name(topic_name)
     assert_valid_channel_name(channel_name)

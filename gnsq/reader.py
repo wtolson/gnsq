@@ -225,6 +225,15 @@ class Reader(object):
         return blinker.Signal(doc='Sent after a giving up on a message.')
 
     @cached_property
+    def on_auth(self):
+        """Emitted after a connection is successfully authenticated.
+
+        The signal sender is the reader and the `conn` and parsed `response` are
+        sent as arguments.
+        """
+        return blinker.Signal(doc='Emitted when a response is received.')
+
+    @cached_property
     def on_exception(self):
         """Emitted when an exception is caught while handling a message.
 
@@ -536,6 +545,7 @@ class Reader(object):
         conn.on_error.connect(self.handle_error)
         conn.on_finish.connect(self.handle_finish)
         conn.on_requeue.connect(self.handle_requeue)
+        conn.on_auth.connect(self.handle_auth)
 
         if self.max_concurrency:
             conn.on_message.connect(self.queue_message)
@@ -671,6 +681,20 @@ class Reader(object):
         self.update_ready(conn)
         self.handle_backoff()
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
+
+    def handle_auth(self, conn, response):
+        metadata = []
+        if response.get('identity'):
+            metadata.append("Identity: %r" % response['identity'])
+
+        if response.get('permission_count'):
+            metadata.append("Permissions: %d" % response['permission_count'])
+
+        if response.get('identity_url'):
+            metadata.append(response['identity_url'])
+
+        self.logger.info('[%s] AUTH accepted %s' % (conn, ' '.join(metadata)))
+        self.on_auth.send(self, conn=conn, response=response)
 
     def handle_backoff(self):
         if self.state in (BACKOFF, CLOSED):
