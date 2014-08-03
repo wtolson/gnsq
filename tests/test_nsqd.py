@@ -312,6 +312,9 @@ def test_auth():
         assert nsq.unpack_size(socket.recv(4)) == 6
         assert socket.recv(6) == 'secret'
 
+        resp = json.dumps({'identity': 'awesome'})
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+
     with handle as server:
         conn = Nsqd(
             address='127.0.0.1',
@@ -320,40 +323,53 @@ def test_auth():
         )
 
         conn.connect()
-        conn.auth()
+        resp = conn.auth()
+        assert resp['identify'] == 'awesome'
 
 
-@pytest.mark.slow
-def test_server_auth():
-    with NsqdIntegrationServer() as server:
+def test_identify_auth():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == '  V2'
+        assert socket.recv(9) == 'IDENTIFY\n'
+
+        size = nsq.unpack_size(socket.recv(4))
+        data = json.loads(socket.recv(size))
+        assert 'gnsq' in data['user_agent']
+
+        resp = json.dumps({'auth_required': True})
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+
+        assert socket.recv(5) == 'AUTH\n'
+        assert nsq.unpack_size(socket.recv(4)) == 6
+        assert socket.recv(6) == 'secret'
+
+        resp = json.dumps({'identity': 'awesome'})
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+
+    with handle as server:
         conn = Nsqd(
             address='127.0.0.1',
-            tcp_port=server.tcp_address,
-            auth_secret='secret',
+            tcp_port=server.server_port,
+            auth_secret='secret'
         )
+
+        server.auth_was_called = False
+        _auth = conn.auth
+
+        def auth():
+            assert server.auth_was_called is False
+            server.auth_was_called = True
+
+            resp = _auth()
+            assert resp['identify'] == 'awesome'
+
+        conn.auth = auth
         conn.connect()
-        assert conn.state == states.CONNECTED
 
         resp = conn.identify()
-        assert isinstance(resp, dict)
-        assert resp['auth_required'] is True
-
-        conn.publish('topic', 'sup')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
-
-        conn.subscribe('topic', 'channel')
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
-
-        conn.ready(1)
-        frame, data = conn.read_response()
-        assert frame == nsq.FRAME_TYPE_MESSAGE
-        assert data.body == 'sup'
-
-        conn.close_stream()
+        assert resp['auth_required']
+        assert server.auth_was_called
 
 
 @pytest.mark.parametrize('tls,deflate,snappy', product((True, False), repeat=3))
