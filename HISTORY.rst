@@ -3,7 +3,7 @@
 History
 -------
 
-0.2.0 (TBD)
+0.2.0 (2014-08-03)
 ~~~~~~~~~~~~~~~~~~
 * Warn on connection failure.
 * Add extra requires for snappy.
