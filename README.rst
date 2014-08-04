@@ -2,13 +2,13 @@
 gnsq
 ===============================
 
-.. image:: https://badge.fury.io/py/gnsq.svg
-    :target: http://badge.fury.io/py/gnsq
+.. image:: https://img.shields.io/pypi/v/gnsq.svg?style=flat
+    :target: https://pypi.python.org/pypi/gnsq
 
-.. image:: https://travis-ci.org/wtolson/gnsq.svg?branch=master
+.. image:: https://img.shields.io/travis/wtolson/gnsq/master.svg?style=flat
         :target: https://travis-ci.org/wtolson/gnsq
 
-.. image:: https://pypip.in/d/gnsq/badge.png
+.. image:: https://img.shields.io/pypi/dm/gnsq.svg?style=flat
         :target: https://pypi.python.org/pypi/gnsq
 
 
@@ -17,7 +17,7 @@ A `gevent`_ based python client for `NSQ`_.
 Features include:
 
 * Free software: BSD license
-* Documentation: http://gnsq.readthedocs.org
+* Documentation: https://gnsq.readthedocs.org
 * Battle tested on billions and billions of messages `</sagan>`
 * Based on `gevent`_ for fast concurrent networking
 * Fast and flexible signals with `Blinker`_
