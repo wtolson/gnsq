@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from resource import getpagesize
+from mmap import PAGESIZE
 from errno import ENOTCONN, EDEADLK, EAGAIN, EWOULDBLOCK
 
 import gevent
@@ -26,7 +26,7 @@ from .defalte import DefalteSocket
 
 
 class Stream(object):
-    def __init__(self, address, port, timeout, buffer_size=getpagesize()):
+    def __init__(self, address, port, timeout, buffer_size=PAGESIZE):
         self.address = address
         self.port = port
         self.timeout = timeout
