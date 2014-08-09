@@ -12,7 +12,7 @@ gnsq
         :target: https://pypi.python.org/pypi/gnsq
 
 
-A `gevent`_ based python client for `NSQ`_.
+A `gevent`_ based python client for `NSQ`_ distributed messaging platform.
 
 Features include:
 
@@ -38,14 +38,22 @@ Or even better, if you have virtualenvwrapper installed::
     $ pip install gnsq
 
 Currently there is support for Python 2.6 and Python 2.7. Support for Python 3
-is dependent on `gevent support <https://github.com/surfly/gevent/issues/38>`_.
+is dependent on `gevent support`_.
 
 Usage
 -----
 
-To use gnsq in a project::
+First make sure nsq is `installed and running`_. Next publish some messages to
+your topic::
 
     import gnsq
+    conn = gnsq.Nsqd(address='localhost', http_port=4151)
+
+    conn.publish('topic', 'hello gevent!')
+    conn.publish('topic', 'hello nsq!')
+
+Then to use gnsq to consume your topic::
+
     reader = gnsq.Reader('topic', 'channel', 'localhost:4150')
 
     @reader.on_message.connect
@@ -80,4 +88,6 @@ environment.
 .. _gevent: http://gevent.org/
 .. _NSQ: http://nsq.io/
 .. _Blinker: http://pythonhosted.org/blinker/
+.. _gevent support: https://github.com/surfly/gevent/issues/38
+.. _installed and running: http://nsq.io/overview/quick_start.html
 .. _contributing guide: https://github.com/wtolson/gnsq/blob/master/CONTRIBUTING.rst
