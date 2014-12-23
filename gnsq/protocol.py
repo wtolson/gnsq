@@ -39,20 +39,21 @@ FRAME_TYPE_MESSAGE = 2
 #
 # Helpers
 #
-TOPIC_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+$')
-CHANNEL_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+(#ephemeral)?$')
+VALID_NAME_RE = re.compile(r'^[\.a-zA-Z0-9_-]+(#ephemeral)?$')
+
+
+def _valid_name(name):
+    if not 0 < len(name) < 65:
+        return False
+    return bool(VALID_NAME_RE.match(name))
 
 
 def valid_topic_name(topic):
-    if not 0 < len(topic) < 65:
-        return False
-    return bool(TOPIC_NAME_RE.match(topic))
+    return _valid_name(topic)
 
 
 def valid_channel_name(channel):
-    if not 0 < len(channel) < 65:
-        return False
-    return bool(CHANNEL_NAME_RE.match(channel))
+    return _valid_name(channel)
 
 
 def assert_valid_topic_name(topic):

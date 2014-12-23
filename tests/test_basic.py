@@ -9,7 +9,7 @@ from gnsq import protocol as nsq
     ('invalid name with space', False),
     ('invalid_name_due_to_length_this_is_' + (4 * 'really_') + 'long', False),
     ('test-with_period.', True),
-    ('test#ephemeral', False),
+    ('test#ephemeral', True),
     ('test:ephemeral', False),
 ])
 def test_topic_names(name, good):
