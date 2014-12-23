@@ -3,6 +3,11 @@
 History
 -------
 
+0.2.1 (TBD)
+~~~~~~~~~~~
+* Topics and channels are now valid to 64 characters.
+* Ephemeral topics are now valid.
+
 0.2.0 (2014-08-03)
 ~~~~~~~~~~~~~~~~~~
 * Warn on connection failure.
