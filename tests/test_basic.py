@@ -7,7 +7,7 @@ from gnsq import protocol as nsq
 @pytest.mark.parametrize('name,good', [
     ('valid_name', True),
     ('invalid name with space', False),
-    ('invalid_name_due_to_length_this_is_really_really_really_long', False),
+    ('invalid_name_due_to_length_this_is_' + (4 * 'really_') + 'long', False),
     ('test-with_period.', True),
     ('test#ephemeral', False),
     ('test:ephemeral', False),
@@ -20,7 +20,7 @@ def test_topic_names(name, good):
     ('test', True),
     ('test-with_period.', True),
     ('test#ephemeral', True),
-    ('invalid_name_due_to_length_this_is_really_really_really_long', False),
+    ('invalid_name_due_to_length_this_is_' + (4 * 'really_') + 'long', False),
     ('invalid name with space', False),
 ])
 def test_channel_names(name, good):
