@@ -668,7 +668,11 @@ class Reader(object):
             self.on_exception.send(self, message=message, error=error)
 
         if self.is_running:
-            message.requeue(self.requeue_delay)
+            try:
+                message.requeue(self.requeue_delay)
+            except NSQException as error:
+                msg = '[%s] error requeueing message (%r)' % (conn, error)
+                self.logger.warning(msg)
 
     def handle_finish(self, conn, message_id):
         self.logger.debug('[%s] finished message: %s' % (conn, message_id))
