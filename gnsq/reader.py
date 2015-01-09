@@ -503,6 +503,9 @@ class Reader(object):
         if (time.time() - self.last_random_ready) < 30:
             return conn
 
+        if not self.conns:
+            return conn
+
         self.last_random_ready = time.time()
         return random.choice([c for c in self.conns if not c.ready_count])
 
