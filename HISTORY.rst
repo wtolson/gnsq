@@ -3,8 +3,8 @@
 History
 -------
 
-0.2.1 (TBD)
-~~~~~~~~~~~
+0.2.1 (2014-01-12)
+~~~~~~~~~~~~~~~~~~
 * Topics and channels are now valid to 64 characters.
 * Ephemeral topics are now valid.
 * Adjustable backoff behaviour.
