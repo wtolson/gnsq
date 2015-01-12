@@ -7,6 +7,7 @@ History
 ~~~~~~~~~~~
 * Topics and channels are now valid to 64 characters.
 * Ephemeral topics are now valid.
+* Adjustable backoff behaviour.
 
 0.2.0 (2014-08-03)
 ~~~~~~~~~~~~~~~~~~

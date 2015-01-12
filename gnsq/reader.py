@@ -90,7 +90,9 @@ class Reader(object):
         re-distributed (ie. max_in_flight < num_producers)
 
     :param max_backoff_duration: the maximum time we will allow a backoff state
-        to last in seconds
+        to last in seconds. If zero, backoff wil not occur
+
+    :param backoff_on_requeue: if False, backoff will only occur on exception
 
     :param \*\*kwargs: passed to :class:`gnsq.Nsqd` initialization
     """
@@ -111,6 +113,7 @@ class Reader(object):
         lookupd_poll_jitter=0.3,
         low_ready_idle_timeout=10,
         max_backoff_duration=128,
+        backoff_on_requeue=True,
         **kwargs
     ):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
@@ -133,6 +136,7 @@ class Reader(object):
         self.lookupd_poll_interval = lookupd_poll_interval
         self.lookupd_poll_jitter = lookupd_poll_jitter
         self.low_ready_idle_timeout = low_ready_idle_timeout
+        self.backoff_on_requeue = backoff_on_requeue
         self.max_backoff_duration = max_backoff_duration
         self.conn_kwargs = kwargs
 
@@ -666,6 +670,9 @@ class Reader(object):
             msg = '[%s] caught exception while handling message' % conn
             self.logger.exception(msg)
             self.on_exception.send(self, message=message, error=error)
+            if not self.backoff_on_requeue:
+                self.backoff.failure()
+                self.handle_backoff()
 
         if self.is_running:
             try:
@@ -677,16 +684,17 @@ class Reader(object):
     def handle_finish(self, conn, message_id):
         self.logger.debug('[%s] finished message: %s' % (conn, message_id))
         self.backoff.success()
-        self.update_ready(conn)
         self.handle_backoff()
+        self.update_ready(conn)
         self.on_finish.send(self, message_id=message_id)
 
     def handle_requeue(self, conn, message_id, timeout):
         msg = '[%s] requeued message: %s (%s)'
         self.logger.debug(msg % (conn, message_id, timeout))
-        self.backoff.failure()
+        if self.backoff_on_requeue:
+            self.backoff.failure()
+            self.handle_backoff()
         self.update_ready(conn)
-        self.handle_backoff()
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
     def handle_auth(self, conn, response):
@@ -704,6 +712,9 @@ class Reader(object):
         self.on_auth.send(self, conn=conn, response=response)
 
     def handle_backoff(self):
+        if not self.max_backoff_duration:
+            return
+
         if self.state in (BACKOFF, CLOSED):
             return
 
