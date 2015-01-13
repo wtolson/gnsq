@@ -659,8 +659,17 @@ class Reader(object):
 
         try:
             self.on_message.send(self, message=message)
-            if self.is_running and not self.async:
-                message.finish()
+
+            if not self.is_running:
+                return
+
+            if self.async:
+                return
+
+            if message.has_responded():
+                return
+
+            message.finish()
             return
 
         except NSQRequeueMessage:
@@ -674,12 +683,17 @@ class Reader(object):
                 self.backoff.failure()
                 self.handle_backoff()
 
-        if self.is_running:
-            try:
-                message.requeue(self.requeue_delay)
-            except NSQException as error:
-                msg = '[%s] error requeueing message (%r)' % (conn, error)
-                self.logger.warning(msg)
+        if not self.is_running:
+            return
+
+        if message.has_responded():
+            return
+
+        try:
+            message.requeue(self.requeue_delay)
+        except NSQException as error:
+            msg = '[%s] error requeueing message (%r)' % (conn, error)
+            self.logger.warning(msg)
 
     def handle_finish(self, conn, message_id):
         self.logger.debug('[%s] finished message: %s' % (conn, message_id))

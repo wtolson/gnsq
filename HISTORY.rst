@@ -3,6 +3,10 @@
 History
 -------
 
+0.2.2 (TBD)
+~~~~~~~~~~~
+* Allow finishing and requeuing in sync handlers.
+
 0.2.1 (2014-01-12)
 ~~~~~~~~~~~~~~~~~~
 * Topics and channels are now valid to 64 characters.
