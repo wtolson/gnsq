@@ -3,8 +3,8 @@
 History
 -------
 
-0.2.2 (TBD)
-~~~~~~~~~~~
+0.2.2 (2014-01-12)
+~~~~~~~~~~~~~~~~~~
 * Allow finishing and requeuing in sync handlers.
 
 0.2.1 (2014-01-12)
