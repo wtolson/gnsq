@@ -3,6 +3,10 @@
 History
 -------
 
+0.2.3 (TBD)
+~~~~~~~~~~~
+* Remove disconnected nsqd messages from the worker queue.
+
 0.2.2 (2014-01-12)
 ~~~~~~~~~~~~~~~~~~
 * Allow finishing and requeuing in sync handlers.

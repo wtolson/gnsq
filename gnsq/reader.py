@@ -606,6 +606,8 @@ class Reader(object):
 
     def _run(self):
         for conn, message in self.queue:
+            if not conn.is_connected:
+                continue
             self.handle_message(conn, message)
 
     def queue_message(self, conn, message):
