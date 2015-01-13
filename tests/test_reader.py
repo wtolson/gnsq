@@ -99,10 +99,7 @@ def test_messages():
                 assert not reader.is_starved
                 reader.close()
 
-        try:
-            reader.start()
-        except NSQSocketError:
-            pass
+        reader.start()
 
         if Accounting.error:
             raise Accounting.error
@@ -164,10 +161,7 @@ def test_max_concurrency():
             if Accounting.count == Accounting.total:
                 reader.close()
 
-        try:
-            reader.start()
-        except NSQSocketError:
-            pass
+        reader.start()
 
         if Accounting.error:
             raise Accounting.error
@@ -221,10 +215,7 @@ def test_lookupd():
             if Accounting.count == Accounting.total:
                 reader.close()
 
-        try:
-            reader.start()
-        except NSQSocketError:
-            pass
+        reader.start()
 
         if Accounting.error:
             raise Accounting.error
