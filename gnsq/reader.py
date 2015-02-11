@@ -507,11 +507,12 @@ class Reader(object):
         if (time.time() - self.last_random_ready) < 30:
             return conn
 
-        if not self.conns:
+        ready_conns = [c for c in self.conns if not c.ready_count]
+        if not ready_conns:
             return conn
 
         self.last_random_ready = time.time()
-        return random.choice([c for c in self.conns if not c.ready_count])
+        return random.choice(ready_conns)
 
     def update_ready(self, conn):
         if self.state in (BACKOFF, THROTTLED):
