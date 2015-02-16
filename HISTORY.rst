@@ -3,9 +3,10 @@
 History
 -------
 
-0.2.3 (TBD)
-~~~~~~~~~~~
+0.2.3 (2015-02-16)
+~~~~~~~~~~~~~~~~~~
 * Remove disconnected nsqd messages from the worker queue.
+* #4 - Fix crash in Reader.random_ready_conn (thanks @ianpreston).
 
 0.2.2 (2015-01-12)
 ~~~~~~~~~~~~~~~~~~
