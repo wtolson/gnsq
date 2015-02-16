@@ -650,40 +650,41 @@ class Reader(object):
         self.logger.debug('[%s] error: %s' % (conn, error))
         self.on_error.send(self, error=error)
 
-    def handle_message(self, conn, message):
-        self.logger.debug('[%s] got message: %s' % (conn, message.id))
-        self.update_ready(conn)
-
+    def _handle_message(self, message):
         if self.max_tries and message.attempts > self.max_tries:
             msg = "giving up on message '%s' after max tries %d"
             self.logger.warning(msg % (message.id, self.max_tries))
             self.on_giving_up.send(self, message=message)
             return message.finish()
 
-        try:
-            self.on_message.send(self, message=message)
+        self.on_message.send(self, message=message)
 
-            if not self.is_running:
-                return
-
-            if self.async:
-                return
-
-            if message.has_responded():
-                return
-
-            message.finish()
+        if not self.is_running:
             return
 
+        if self.async:
+            return
+
+        if message.has_responded():
+            return
+
+        message.finish()
+
+    def handle_message(self, conn, message):
+        self.logger.debug('[%s] got message: %s' % (conn, message.id))
+        self.update_ready(conn)
+
+        try:
+            return self._handle_message(message)
+
         except NSQRequeueMessage:
-            pass
+            backoff = self.backoff_on_requeue
 
         except Exception as error:
+            backoff = True
             msg = '[%s] caught exception while handling message' % conn
             self.logger.exception(msg)
             self.on_exception.send(self, message=message, error=error)
-            if not self.backoff_on_requeue:
-                self.backoff.failure()
 
         if not self.is_running:
             return
@@ -692,26 +693,21 @@ class Reader(object):
             return
 
         try:
-            message.requeue(self.requeue_delay)
+            message.requeue(self.requeue_delay, backoff)
         except NSQException as error:
             msg = '[%s] error requeueing message (%r)' % (conn, error)
             self.logger.warning(msg)
 
     def handle_finish(self, conn, message_id):
         self.logger.debug('[%s] finished message: %s' % (conn, message_id))
-        self.backoff.success()
-        self.handle_backoff()
+        self.handle_backoff(False)
         self.update_ready(conn)
         self.on_finish.send(self, message_id=message_id)
 
-    def handle_requeue(self, conn, message_id, timeout):
+    def handle_requeue(self, conn, message_id, timeout, backoff):
         msg = '[%s] requeued message: %s (%s)'
         self.logger.debug(msg % (conn, message_id, timeout))
-        if self.backoff_on_requeue:
-            self.backoff.failure()
-        else:
-            self.backoff.success()
-        self.handle_backoff()
+        self.handle_backoff(backoff)
         self.update_ready(conn)
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
@@ -729,12 +725,17 @@ class Reader(object):
         self.logger.info('[%s] AUTH accepted %s' % (conn, ' '.join(metadata)))
         self.on_auth.send(self, conn=conn, response=response)
 
-    def handle_backoff(self):
+    def handle_backoff(self, backoff):
         if not self.max_backoff_duration:
             return
 
         if self.state in (BACKOFF, CLOSED):
             return
+
+        if backoff:
+            self.backoff.failure()
+        else:
+            self.backoff.success()
 
         if self.state == THROTTLED and self.backoff.is_reset():
             return self.complete_backoff()

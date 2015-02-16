@@ -14,10 +14,10 @@ class MockConnection(object):
         assert exp_name == 'finish'
         assert exp_args == (message,)
 
-    def requeue(self, message, timeout):
+    def requeue(self, message, timeout, backoff):
         exp_name, exp_args = self.operations.next()
         assert exp_name == 'requeue'
-        assert exp_args == (message, timeout)
+        assert exp_args == (message, timeout, backoff)
 
     def touch(self, message):
         exp_name, exp_args = self.operations.next()
@@ -57,7 +57,7 @@ def test_finish():
 def test_requeue():
     message = gnsq.Message(0, 42, '1234', 'sup')
     mock_conn = MockConnection(message, [
-        ('requeue', (message, 0)),
+        ('requeue', (message, 0, True)),
     ])
     assert message.has_responded() is False
 
@@ -73,7 +73,7 @@ def test_requeue():
 def test_requeue_timeout():
     message = gnsq.Message(0, 42, '1234', 'sup')
     mock_conn = MockConnection(message, [
-        ('requeue', (message, 1000)),
+        ('requeue', (message, 1000, True)),
     ])
     assert message.has_responded() is False
 
@@ -82,6 +82,22 @@ def test_requeue_timeout():
 
     with pytest.raises(gnsq.errors.NSQException):
         message.requeue(1000)
+
+    mock_conn.assert_finished()
+
+
+def test_backoff():
+    message = gnsq.Message(0, 42, '1234', 'sup')
+    mock_conn = MockConnection(message, [
+        ('requeue', (message, 0, False)),
+    ])
+    assert message.has_responded() is False
+
+    message.requeue(backoff=False)
+    assert message.has_responded() is True
+
+    with pytest.raises(gnsq.errors.NSQException):
+        message.requeue()
 
     mock_conn.assert_finished()
 

@@ -3,6 +3,12 @@
 History
 -------
 
+0.3.0 (TBD)
+~~~~~~~~~~~
+* Fix extra backoff success/failures during backoff period.
+* Fix case where handle_backoff is never called.
+* Add backoff parameter to message.requeue().
+
 0.2.3 (2015-02-16)
 ~~~~~~~~~~~~~~~~~~
 * Remove disconnected nsqd messages from the worker queue.

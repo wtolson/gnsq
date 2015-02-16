@@ -173,8 +173,8 @@ class Nsqd(HTTPClient):
         """Emitted after :meth:`requeue`.
 
         Sent after a message owned by this connection is requeued. The signal
-        sender is the connection and the `message_id` and `timeout` are sent as
-        arguments.
+        sender is the connection and the `message_id`, `timeout` and `backoff`
+        flag are sent as arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
 
@@ -298,8 +298,8 @@ class Nsqd(HTTPClient):
     def handle_finish(self, message):
         self.finish(message.id)
 
-    def handle_requeue(self, message, timeout):
-        self.requeue(message.id, timeout)
+    def handle_requeue(self, message, timeout, backoff):
+        self.requeue(message.id, timeout, backoff)
 
     def handle_touch(self, message):
         self.touch(message.id)
@@ -446,11 +446,16 @@ class Nsqd(HTTPClient):
         self.finish_inflight()
         self.on_finish.send(self, message_id=message_id)
 
-    def requeue(self, message_id, timeout=0):
+    def requeue(self, message_id, timeout=0, backoff=True):
         """Re-queue a message (indicate failure to process)."""
         self.send(nsq.requeue(message_id, timeout))
         self.finish_inflight()
-        self.on_requeue.send(self, message_id=message_id, timeout=timeout)
+        self.on_requeue.send(
+            self,
+            message_id=message_id,
+            timeout=timeout,
+            backoff=backoff
+        )
 
     def touch(self, message_id):
         """Reset the timeout for an in-flight message."""

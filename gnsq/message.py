@@ -26,8 +26,8 @@ class Message(object):
     def on_requeue(self):
         """Emitted after :meth:`requeue`.
 
-        The signal sender is the message instance and sends the `timeout` as an
-        argument.
+        The signal sender is the message instance and sends the `timeout` and
+        a `backoff` flag as arguments.
         """
         return blinker.Signal(doc='Emitted after message is requeued.')
 
@@ -53,7 +53,7 @@ class Message(object):
         self._has_responded = True
         self.on_finish.send(self)
 
-    def requeue(self, time_ms=0):
+    def requeue(self, time_ms=0, backoff=True):
         """
         Respond to nsqd that you’ve failed to process this message successfully
         (and would like it to be requeued).
@@ -61,7 +61,7 @@ class Message(object):
         if self._has_responded:
             raise NSQException('already responded')
         self._has_responded = True
-        self.on_requeue.send(self, timeout=time_ms)
+        self.on_requeue.send(self, timeout=time_ms, backoff=backoff)
 
     def touch(self):
         """Respond to nsqd that you need more time to process the message."""
