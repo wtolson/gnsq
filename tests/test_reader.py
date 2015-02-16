@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import multiprocessing
+import time
 import pytest
 import gevent
 
@@ -257,3 +258,34 @@ def test_no_handlers():
     reader = Reader('test', 'test', 'localhost:4150')
     with pytest.raises(RuntimeError):
         reader.start(block=False)
+
+
+def test_random_ready_conn():
+    conn_1 = Nsqd('nsq1')
+    conn_2 = Nsqd('nsq2')
+    reader = Reader('test', 'test', 'localhost:4150')
+
+    reader.max_in_flight = 2
+    reader.conns = [conn_2]
+    reader.last_random_ready = 0
+    assert reader.random_ready_conn(conn_1) is conn_1
+    assert reader.last_random_ready == 0
+
+    reader.max_in_flight = 1
+    reader.conns = [conn_2, conn_2]
+    reader.last_random_ready = last_random_ready = time.time()
+    assert reader.random_ready_conn(conn_1) is conn_1
+    assert reader.last_random_ready == last_random_ready
+
+    reader.max_in_flight = 1
+    reader.conns = [conn_2, conn_2]
+    reader.last_random_ready = 0
+    assert reader.random_ready_conn(conn_1) is conn_2
+    assert reader.last_random_ready != 0
+
+    reader.max_in_flight = 1
+    reader.conns = [conn_2, conn_2]
+    reader.last_random_ready = 0
+    conn_2.ready_count = 1
+    assert reader.random_ready_conn(conn_1) is conn_1
+    assert reader.last_random_ready == 0
