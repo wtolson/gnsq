@@ -1,9 +1,11 @@
 from __future__ import with_statement
 
+import sys
 import struct
 import json
 import ssl
 import pytest
+import gevent
 
 from itertools import product
 from gnsq import Nsqd, Message, states, errors
@@ -12,6 +14,13 @@ from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
 
 from mock_server import mock_server
 from integration_server import NsqdIntegrationServer
+
+
+BAD_GEVENT = all([
+    sys.version_info > (2, 7, 8),
+    sys.version_info < (3, 0),
+    gevent.version_info < (1, 0, 2),
+])
 
 
 def mock_response(frame_type, data):
@@ -399,6 +408,11 @@ def test_socket_upgrades(tls, deflate, snappy):
 
         if tls and server.version < (0, 2, 28):
             with pytest.raises(ssl.SSLError):
+                conn.identify()
+            return
+
+        if tls and BAD_GEVENT:
+            with pytest.raises(AttributeError):
                 conn.identify()
             return
 
