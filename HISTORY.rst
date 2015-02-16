@@ -7,11 +7,11 @@ History
 ~~~~~~~~~~~
 * Remove disconnected nsqd messages from the worker queue.
 
-0.2.2 (2014-01-12)
+0.2.2 (2015-01-12)
 ~~~~~~~~~~~~~~~~~~
 * Allow finishing and requeuing in sync handlers.
 
-0.2.1 (2014-01-12)
+0.2.1 (2015-01-12)
 ~~~~~~~~~~~~~~~~~~
 * Topics and channels are now valid to 64 characters.
 * Ephemeral topics are now valid.
