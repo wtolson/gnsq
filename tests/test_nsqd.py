@@ -406,13 +406,13 @@ def test_socket_upgrades(tls, deflate, snappy):
                 conn.identify()
             return
 
-        if tls and server.version < (0, 2, 28):
-            with pytest.raises(ssl.SSLError):
+        if tls and BAD_GEVENT:
+            with pytest.raises(AttributeError):
                 conn.identify()
             return
 
-        if tls and BAD_GEVENT:
-            with pytest.raises(AttributeError):
+        if tls and server.version < (0, 2, 28):
+            with pytest.raises(ssl.SSLError):
                 conn.identify()
             return
 
