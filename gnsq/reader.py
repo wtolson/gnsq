@@ -684,7 +684,6 @@ class Reader(object):
             self.on_exception.send(self, message=message, error=error)
             if not self.backoff_on_requeue:
                 self.backoff.failure()
-                self.handle_backoff()
 
         if not self.is_running:
             return
@@ -710,7 +709,9 @@ class Reader(object):
         self.logger.debug(msg % (conn, message_id, timeout))
         if self.backoff_on_requeue:
             self.backoff.failure()
-            self.handle_backoff()
+        else:
+            self.backoff.success()
+        self.handle_backoff()
         self.update_ready(conn)
         self.on_requeue.send(self, message_id=message_id, timeout=timeout)
 
