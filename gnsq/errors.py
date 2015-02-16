@@ -8,7 +8,9 @@ class NSQException(Exception):
 
 
 class NSQRequeueMessage(NSQException):
-    pass
+    def __init__(self, backoff=None):
+        self.backoff = backoff
+        super(NSQRequeueMessage, self).__init__()
 
 
 class NSQNoConnections(NSQException):

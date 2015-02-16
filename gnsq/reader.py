@@ -677,8 +677,11 @@ class Reader(object):
         try:
             return self._handle_message(message)
 
-        except NSQRequeueMessage:
-            backoff = self.backoff_on_requeue
+        except NSQRequeueMessage as error:
+            if error.backoff is None:
+                backoff = self.backoff_on_requeue
+            else:
+                backoff = error.backoff
 
         except Exception as error:
             backoff = True
