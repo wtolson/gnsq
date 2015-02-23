@@ -52,11 +52,12 @@ class Stream(object):
         if self.state not in (INIT, DISCONNECTED):
             return
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(self.timeout)
-
         try:
-            self.socket.connect((self.address, self.port))
+            self.socket = socket.create_connection(
+                address=(self.address, self.port),
+                timeout=self.timeout,
+            )
+
         except socket.error as error:
             raise NSQSocketError(*error)
 
