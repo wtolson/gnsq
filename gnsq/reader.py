@@ -21,7 +21,8 @@ from .decorators import cached_property
 from .errors import (
     NSQException,
     NSQNoConnections,
-    NSQRequeueMessage
+    NSQRequeueMessage,
+    NSQSocketError,
 )
 
 
@@ -359,6 +360,9 @@ class Reader(object):
         if self.state == THROTTLED and self.total_in_flight_or_ready:
             return
 
+        if not conn.is_connected:
+            return
+
         total = self.total_ready_count - conn.ready_count + count
         if total > self.max_in_flight:
             if not (conn.ready_count or conn.in_flight):
@@ -367,7 +371,11 @@ class Reader(object):
             return
 
         self.logger.debug('[%s] sending RDY %d' % (conn, count))
-        conn.ready(count)
+
+        try:
+            conn.ready(count)
+        except NSQSocketError as error:
+            self.logger.warn('[%s] RDY %d failed (%r)' % (conn, count, error))
 
     def query_nsqd(self):
         self.logger.debug('querying nsqd...')
@@ -405,17 +413,21 @@ class Reader(object):
         self.state = BACKOFF
 
         for conn in self.conns:
-            conn.ready(0)
+            try:
+                conn.ready(0)
+            except NSQSocketError as error:
+                self.logger.warn('[%s] RDY 0 failed (%r)' % (conn, error))
 
         interval = self.backoff.get_interval()
         self.logger.info('backing off for %s seconds' % interval)
         gevent.sleep(interval)
 
         self.state = THROTTLED
-        if not self.conns:
-            return
 
         conn = self.random_connection()
+        if not conn:
+            return
+
         self.logger.info('[%s] testing backoff state with RDY 1' % conn)
         self.send_ready(conn, 1)
 
@@ -473,7 +485,10 @@ class Reader(object):
                 continue
 
             self.logger.info('[%s] idle connection, giving up RDY count' % conn)
-            conn.ready(0)
+            try:
+                conn.ready(0)
+            except NSQSocketError as error:
+                self.logger.warn('[%s] RDY 0 failed (%r)' % (conn, error))
 
         if self.state == THROTTLED:
             max_in_flight = 1 - self.total_in_flight_or_ready
@@ -519,8 +534,10 @@ class Reader(object):
             return
 
         conn = self.random_ready_conn(conn)
-        if conn.ready_count < max(conn.last_ready * 0.25, 2):
-            self.send_ready(conn, self.connection_max_in_flight)
+        if conn.ready_count >= max(conn.last_ready * 0.25, 2):
+            return
+
+        self.send_ready(conn, self.connection_max_in_flight)
 
     def random_connection(self):
         if not self.conns:

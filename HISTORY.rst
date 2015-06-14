@@ -9,6 +9,7 @@ History
 * Fix case where handle_backoff is never called.
 * Add backoff parameter to message.requeue().
 * Allow overriding backoff on NSQRequeueMessage error.
+* Handle connection failures while starting/completing backoff.
 
 0.2.3 (2015-02-16)
 ~~~~~~~~~~~~~~~~~~
