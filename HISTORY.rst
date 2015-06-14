@@ -3,8 +3,8 @@
 History
 -------
 
-0.3.0 (TBD)
-~~~~~~~~~~~
+0.3.0 (2015-06-14)
+~~~~~~~~~~~~~~~~~~
 
 * Fix extra backoff success/failures during backoff period.
 * Fix case where handle_backoff is never called.
