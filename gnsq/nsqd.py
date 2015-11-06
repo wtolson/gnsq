@@ -284,7 +284,7 @@ class Nsqd(HTTPClient):
 
     def handle_message(self, data):
         self.last_message = time.time()
-        self.ready_count -= 1
+        self.ready_count = max(0, self.ready_count-1)
         self.in_flight += 1
 
         message = Message(*nsq.unpack_message(data))
