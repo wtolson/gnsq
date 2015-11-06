@@ -354,13 +354,21 @@ class Reader(object):
         return self.total_in_flight + self.total_ready_count
 
     def send_ready(self, conn, count):
-        if self.state in (BACKOFF, CLOSED):
+        if self.state == CLOSED:
+            self.logger.debug('[%s] cannot send RDY (in state CLOSED)' % conn)
+            return
+
+        if self.state == BACKOFF:
+            self.logger.debug('[%s] cannot send RDY (in state BACKOFF)' % conn)
             return
 
         if self.state == THROTTLED and self.total_in_flight_or_ready:
+            msg = '[%s] cannot send RDY (THROTTLED and %d in flight or ready)'
+            self.logger.debug(msg % (conn, self.total_in_flight_or_ready))
             return
 
         if not conn.is_connected:
+            self.logger.debug('[%s] cannot send RDY (connection closed)' % conn)
             return
 
         total = self.total_ready_count - conn.ready_count + count
