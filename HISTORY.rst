@@ -3,6 +3,13 @@
 History
 -------
 
+
+0.3.1 (2015-11-06)
+~~~~~~~~~~~~~~~~~~
+
+* Fix negative in flight causing not throtteling after backoff.
+
+
 0.3.0 (2015-06-14)
 ~~~~~~~~~~~~~~~~~~
 
