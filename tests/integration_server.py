@@ -139,6 +139,7 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         cmd = [
             'nsqd',
+            '--broadcast-address', self.address,
             '--tcp-address', self._random_address(),
             '--http-address', self._random_address(),
             '--data-path', self.data_path,
@@ -160,6 +161,7 @@ class LookupdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         return [
             'nsqlookupd',
+            '--broadcast-address', self.address,
             '--tcp-address', self._random_address(),
             '--http-address', self._random_address(),
         ]
