@@ -20,6 +20,8 @@ env:
   - NSQ_VERSION=0.3.1 GO_VERSION=1.4.1
   - NSQ_VERSION=0.3.2 GO_VERSION=1.4.1
   - NSQ_VERSION=0.3.5 GO_VERSION=1.4.2
+  - NSQ_VERSION=0.3.6 GO_VERSION=1.5.1
+  - NSQ_VERSION=0.3.7 GO_VERSION=1.6
 
 install:
   - sudo apt-get install libsnappy-dev libevent-dev
