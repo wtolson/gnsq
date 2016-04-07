@@ -35,7 +35,7 @@ def mock_response(frame_type, data):
 def mock_response_message(timestamp, attempts, id, body):
     timestamp_packed = struct.pack('>q', timestamp)
     attempts_packed = struct.pack('>h', attempts)
-    id = b"%016d" % id
+    id = six.b('%016d' % id)
     data = timestamp_packed + attempts_packed + id + body
     return mock_response(nsq.FRAME_TYPE_MESSAGE, data)
 
@@ -293,7 +293,7 @@ def test_sync_receive_messages():
             assert frame == nsq.FRAME_TYPE_MESSAGE
             assert isinstance(msg, Message)
             assert msg.timestamp == i * 1000 * 1000
-            assert msg.id == b'%016d' % i
+            assert msg.id == six.b('%016d' % i)
             assert msg.attempts == i
             assert json.loads(msg.body.decode('utf-8'))['data']['test_key'] == i
 
