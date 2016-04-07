@@ -31,7 +31,7 @@ class Stream(object):
         self.port = port
         self.timeout = timeout
 
-        self.buffer = ''
+        self.buffer = b''
         self.buffer_size = buffer_size
 
         self.socket = None
@@ -99,7 +99,7 @@ class Stream(object):
 
     def consume_buffer(self):
         data = self.buffer
-        self.buffer = ''
+        self.buffer = b''
         return data
 
     def close(self):

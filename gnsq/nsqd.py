@@ -312,7 +312,7 @@ class Nsqd(HTTPClient):
         while self.is_connected:
             self.read_response()
 
-    def check_ok(self, expected='OK'):
+    def check_ok(self, expected=nsq.OK):
         frame, data = self.read_response()
         if frame == nsq.FRAME_TYPE_ERROR:
             raise data
@@ -376,11 +376,11 @@ class Nsqd(HTTPClient):
         if frame == nsq.FRAME_TYPE_ERROR:
             raise data
 
-        if data == 'OK':
+        if data == nsq.OK:
             return
 
         try:
-            data = json.loads(data)
+            data = json.loads(data.decode('utf-8'))
 
         except ValueError:
             self.close_stream()
@@ -413,7 +413,7 @@ class Nsqd(HTTPClient):
             raise data
 
         try:
-            response = json.loads(data)
+            response = json.loads(data.decode('utf-8'))
         except ValueError:
             self.close_stream()
             msg = 'failed to parse AUTH response JSON from nsqd: %r'
@@ -595,7 +595,7 @@ class Nsqd(HTTPClient):
             return self.multipublish_http(topic, messages)
 
     def __str__(self):
-        return self.address + ':' + str(self.tcp_port)
+        return '%s:%d' % (self.address, self.tcp_port)
 
     def __hash__(self):
         return hash(str(self))
@@ -605,3 +605,6 @@ class Nsqd(HTTPClient):
 
     def __cmp__(self, other):
         return hash(self) - hash(other)
+
+    def __lt__(self, other):
+        return hash(self) < hash(other)

@@ -10,23 +10,23 @@ class MockConnection(object):
         self.operations = iter(operations)
 
     def finish(self, message):
-        exp_name, exp_args = self.operations.next()
+        exp_name, exp_args = next(self.operations)
         assert exp_name == 'finish'
         assert exp_args == (message,)
 
     def requeue(self, message, timeout, backoff):
-        exp_name, exp_args = self.operations.next()
+        exp_name, exp_args = next(self.operations)
         assert exp_name == 'requeue'
         assert exp_args == (message, timeout, backoff)
 
     def touch(self, message):
-        exp_name, exp_args = self.operations.next()
+        exp_name, exp_args = next(self.operations)
         assert exp_name == 'touch'
         assert exp_args == (message,)
 
     def assert_finished(self):
         with pytest.raises(StopIteration):
-            self.operations.next()
+            next(self.operations)
 
 
 def test_basic():

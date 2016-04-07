@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import re
 import struct
+import six
 
 try:
     import simplejson as json
@@ -27,9 +28,24 @@ __all__ = [
     'nop'
 ]
 
-MAGIC_V2 = '  V2'
-NEWLINE = '\n'
-HEARTBEAT = '_heartbeat_'
+MAGIC_V2 = b'  V2'
+NEWLINE = b'\n'
+SPACE = b' '
+EMPTY = b''
+HEARTBEAT = b'_heartbeat_'
+OK = b'OK'
+
+IDENTIFY = b'IDENTIFY'
+AUTH = b'AUTH'
+SUB = b'SUB'
+PUB = b'PUB'
+MPUB = b'MPUB'
+RDY = b'RDY'
+FIN = b'FIN'
+REQ = b'REQ'
+TOUCH = b'TOUCH'
+CLS = b'CLS'
+NOP = b'NOP'
 
 FRAME_TYPE_RESPONSE = 0
 FRAME_TYPE_ERROR = 1
@@ -96,46 +112,46 @@ def _packsize(data):
 
 def _packbody(body):
     if body is None:
-        return ''
-    if not isinstance(body, str):
+        return EMPTY
+    if not isinstance(body, bytes):
         raise TypeError('message body must be a byte string')
     return _packsize(body) + body
 
 
 def _encode_param(data):
-    if not isinstance(data, unicode):
+    if isinstance(data, bytes):
         return data
     return data.encode('utf-8')
 
 
 def _command(cmd, body, *params):
     params = tuple(_encode_param(p) for p in params)
-    return ''.join((' '.join((cmd,) + params), NEWLINE, _packbody(body)))
+    return EMPTY.join((SPACE.join((cmd,) + params), NEWLINE, _packbody(body)))
 
 
 def identify(data):
-    return _command('IDENTIFY', json.dumps(data))
+    return _command(IDENTIFY, six.b(json.dumps(data)))
 
 
 def auth(secret):
-    return _command('AUTH', secret)
+    return _command(AUTH, secret)
 
 
 def subscribe(topic_name, channel_name):
     assert_valid_topic_name(topic_name)
     assert_valid_channel_name(channel_name)
-    return _command('SUB', None, topic_name, channel_name)
+    return _command(SUB, None, topic_name, channel_name)
 
 
 def publish(topic_name, data):
     assert_valid_topic_name(topic_name)
-    return _command('PUB', data, topic_name)
+    return _command(PUB, data, topic_name)
 
 
 def multipublish(topic_name, messages):
     assert_valid_topic_name(topic_name)
-    data = ''.join(_packbody(m) for m in messages)
-    return _command('MPUB', _packsize(messages) + data, topic_name)
+    data = EMPTY.join(_packbody(m) for m in messages)
+    return _command(MPUB, _packsize(messages) + data, topic_name)
 
 
 def ready(count):
@@ -145,26 +161,26 @@ def ready(count):
     if count < 0:
         raise ValueError('ready count cannot be negative')
 
-    return _command('RDY', None, str(count))
+    return _command(RDY, None, '%d' % count)
 
 
 def finish(message_id):
-    return _command('FIN', None, message_id)
+    return _command(FIN, None, message_id)
 
 
 def requeue(message_id, timeout=0):
     if not isinstance(timeout, int):
         raise TypeError('requeue timeout must be an integer')
-    return _command('REQ', None, message_id, str(timeout))
+    return _command(REQ, None, message_id, '%d' % timeout)
 
 
 def touch(message_id):
-    return _command('TOUCH', None, message_id)
+    return _command(TOUCH, None, message_id)
 
 
 def close():
-    return _command('CLS', None)
+    return _command(CLS, None)
 
 
 def nop():
-    return _command('NOP', None)
+    return _command(NOP, None)

@@ -99,22 +99,22 @@ class NSQTouchFailed(NSQErrorCode):
 
 
 ERROR_CODES = {
-    'E_INVALID': NSQInvalid,
-    'E_BAD_BODY': NSQBadBody,
-    'E_BAD_TOPIC': NSQBadTopic,
-    'E_BAD_CHANNEL': NSQBadChannel,
-    'E_BAD_MESSAGE': NSQBadMessage,
-    'E_PUT_FAILED': NSQPutFailed,
-    'E_PUB_FAILED': NSQPubFailed,
-    'E_MPUB_FAILED': NSQMPubFailed,
-    'E_FINISH_FAILED': NSQFinishFailed,
-    'E_AUTH_DISABLED': NSQAuthDisabled,
-    'E_AUTH_FAILED': NSQAuthFailed,
-    'E_UNAUTHORIZED': NSQUnauthorized,
-    'E_FIN_FAILED': NSQFinishFailed,
-    'E_REQUEUE_FAILED': NSQRequeueFailed,
-    'E_REQ_FAILED': NSQRequeueFailed,
-    'E_TOUCH_FAILED': NSQTouchFailed
+    b'E_INVALID': NSQInvalid,
+    b'E_BAD_BODY': NSQBadBody,
+    b'E_BAD_TOPIC': NSQBadTopic,
+    b'E_BAD_CHANNEL': NSQBadChannel,
+    b'E_BAD_MESSAGE': NSQBadMessage,
+    b'E_PUT_FAILED': NSQPutFailed,
+    b'E_PUB_FAILED': NSQPubFailed,
+    b'E_MPUB_FAILED': NSQMPubFailed,
+    b'E_FINISH_FAILED': NSQFinishFailed,
+    b'E_AUTH_DISABLED': NSQAuthDisabled,
+    b'E_AUTH_FAILED': NSQAuthFailed,
+    b'E_UNAUTHORIZED': NSQUnauthorized,
+    b'E_FIN_FAILED': NSQFinishFailed,
+    b'E_REQUEUE_FAILED': NSQRequeueFailed,
+    b'E_REQ_FAILED': NSQRequeueFailed,
+    b'E_TOUCH_FAILED': NSQTouchFailed
 }
 
 

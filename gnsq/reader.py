@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import logging
 import random
 import gevent
 import blinker
 import time
+import six
 
 from itertools import cycle
 from collections import defaultdict
 from multiprocessing import cpu_count
 from gevent.queue import Queue
+from six.moves import range
 
 from .lookupd import Lookupd
 from .nsqd import Nsqd
@@ -256,7 +258,7 @@ class Reader(object):
         return blinker.Signal(doc='Emitted after the reader is closed.')
 
     def _get_nsqds(self, nsqd_tcp_addresses):
-        if isinstance(nsqd_tcp_addresses, basestring):
+        if isinstance(nsqd_tcp_addresses, six.string_types):
             return set([nsqd_tcp_addresses])
 
         elif isinstance(nsqd_tcp_addresses, (list, tuple, set)):
@@ -265,7 +267,7 @@ class Reader(object):
         raise TypeError('nsqd_tcp_addresses must be a list, set or tuple')
 
     def _get_lookupds(self, lookupd_http_addresses):
-        if isinstance(lookupd_http_addresses, basestring):
+        if isinstance(lookupd_http_addresses, six.string_types):
             return [lookupd_http_addresses]
 
         elif isinstance(lookupd_http_addresses, (list, tuple)):
@@ -296,7 +298,7 @@ class Reader(object):
 
         self.workers.append(gevent.spawn(self._poll_ready))
 
-        for _ in xrange(self.max_concurrency):
+        for _ in range(self.max_concurrency):
             self.workers.append(gevent.spawn(self._run))
 
         if block:
@@ -321,7 +323,7 @@ class Reader(object):
     def join(self, timeout=None, raise_error=False):
         """Block until all connections have closed and workers stopped."""
         gevent.joinall(self.workers, timeout, raise_error)
-        gevent.joinall(self.conn_workers.values(), timeout, raise_error)
+        gevent.joinall(list(self.conn_workers.values()), timeout, raise_error)
 
     @property
     def is_running(self):
@@ -339,7 +341,7 @@ class Reader(object):
 
     @property
     def connection_max_in_flight(self):
-        return max(1, self.max_in_flight / max(1, len(self.conns)))
+        return max(1, self.max_in_flight // max(1, len(self.conns)))
 
     @property
     def total_ready_count(self):
@@ -394,7 +396,7 @@ class Reader(object):
 
     def query_lookupd(self):
         self.logger.debug('querying lookupd...')
-        lookupd = self.iterlookupds.next()
+        lookupd = next(self.iterlookupds)
 
         try:
             producers = lookupd.lookup(self.topic)['producers']

@@ -14,7 +14,7 @@ from integration_server import (
 def test_basic():
     with LookupdIntegrationServer() as server:
         lookupd = gnsq.Lookupd(server.http_address)
-        assert lookupd.ping() == 'OK'
+        assert lookupd.ping() == b'OK'
         assert 'version' in lookupd.info()
 
         with pytest.raises(gnsq.errors.NSQHttpError):

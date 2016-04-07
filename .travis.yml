@@ -3,8 +3,12 @@
 language: python
 
 python:
+  - "3.5"
+  - "3.4"
+  - "3.3"
   - "2.7"
   - "2.6"
+  - "pypy"
 
 env:
   - NSQ_VERSION=0.2.24 GO_VERSION=1.2

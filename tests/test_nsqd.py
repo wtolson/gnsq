@@ -6,7 +6,9 @@ import json
 import ssl
 import pytest
 import gevent
+import six
 
+from six.moves import range
 from itertools import product
 from gnsq import Nsqd, Message, states, errors
 from gnsq import protocol as nsq
@@ -33,7 +35,7 @@ def mock_response(frame_type, data):
 def mock_response_message(timestamp, attempts, id, body):
     timestamp_packed = struct.pack('>q', timestamp)
     attempts_packed = struct.pack('>h', attempts)
-    id = "%016d" % id
+    id = b"%016d" % id
     data = timestamp_packed + attempts_packed + id + body
     return mock_response(nsq.FRAME_TYPE_MESSAGE, data)
 
@@ -41,8 +43,8 @@ def mock_response_message(timestamp, attempts, id, body):
 def test_connection():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(1) == ''
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(1) == b''
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -61,8 +63,8 @@ def test_connection():
 def test_disconnected():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(1) == ''
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(1) == b''
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -78,9 +80,9 @@ def test_disconnected():
 
 
 @pytest.mark.parametrize('body', [
-    'hello world',
-    '',
-    '{"some": "json data"}',
+    b'hello world',
+    b'',
+    b'{"some": "json data"}',
 ])
 def test_read(body):
     @mock_server
@@ -99,14 +101,14 @@ def test_read(body):
 def test_identify():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(9) == 'IDENTIFY\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(9) == b'IDENTIFY\n'
 
         size = nsq.unpack_size(socket.recv(4))
-        data = json.loads(socket.recv(size))
+        data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert 'gnsq' in data['user_agent']
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, 'OK'))
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -118,14 +120,14 @@ def test_identify():
 def test_negotiation():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(9) == 'IDENTIFY\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(9) == b'IDENTIFY\n'
 
         size = nsq.unpack_size(socket.recv(4))
-        data = json.loads(socket.recv(size))
+        data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert 'gnsq' in data['user_agent']
-        resp = json.dumps({'test': 42})
+        resp = six.b(json.dumps({'test': 42}))
         socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
@@ -136,25 +138,25 @@ def test_negotiation():
 
 
 @pytest.mark.parametrize('command,args,resp', [
-    ('subscribe', ('topic', 'channel'), 'SUB topic channel\n'),
-    ('subscribe', ('foo', 'bar'), 'SUB foo bar\n'),
-    ('ready', (0,), 'RDY 0\n'),
-    ('ready', (1,), 'RDY 1\n'),
-    ('ready', (42,), 'RDY 42\n'),
-    ('finish', ('0000000000000000',), 'FIN 0000000000000000\n'),
-    ('finish', ('deadbeafdeadbeaf',), 'FIN deadbeafdeadbeaf\n'),
-    ('requeue', ('0000000000000000',), 'REQ 0000000000000000 0\n'),
-    ('requeue', ('deadbeafdeadbeaf', 0), 'REQ deadbeafdeadbeaf 0\n'),
-    ('requeue', ('deadbeafdeadbeaf', 42), 'REQ deadbeafdeadbeaf 42\n'),
-    ('touch', ('0000000000000000',), 'TOUCH 0000000000000000\n'),
-    ('touch', ('deadbeafdeadbeaf',), 'TOUCH deadbeafdeadbeaf\n'),
-    ('close', (), 'CLS\n'),
-    ('nop', (), 'NOP\n'),
+    ('subscribe', ('topic', 'channel'), b'SUB topic channel\n'),
+    ('subscribe', ('foo', 'bar'), b'SUB foo bar\n'),
+    ('ready', (0,), b'RDY 0\n'),
+    ('ready', (1,), b'RDY 1\n'),
+    ('ready', (42,), b'RDY 42\n'),
+    ('finish', ('0000000000000000',), b'FIN 0000000000000000\n'),
+    ('finish', ('deadbeafdeadbeaf',), b'FIN deadbeafdeadbeaf\n'),
+    ('requeue', ('0000000000000000',), b'REQ 0000000000000000 0\n'),
+    ('requeue', ('deadbeafdeadbeaf', 0), b'REQ deadbeafdeadbeaf 0\n'),
+    ('requeue', ('deadbeafdeadbeaf', 42), b'REQ deadbeafdeadbeaf 42\n'),
+    ('touch', ('0000000000000000',), b'TOUCH 0000000000000000\n'),
+    ('touch', ('deadbeafdeadbeaf',), b'TOUCH deadbeafdeadbeaf\n'),
+    ('close', (), b'CLS\n'),
+    ('nop', (), b'NOP\n'),
 ])
 def test_command(command, args, resp):
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
+        assert socket.recv(4) == b'  V2'
         assert socket.recv(len(resp)) == resp
 
     with handle as server:
@@ -166,23 +168,23 @@ def test_command(command, args, resp):
 def test_publish():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(10) == 'PUB topic\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(10) == b'PUB topic\n'
 
         assert nsq.unpack_size(socket.recv(4)) == 3
-        assert socket.recv(3) == 'sup'
+        assert socket.recv(3) == b'sup'
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
         conn.connect()
-        conn.publish('topic', 'sup')
+        conn.publish('topic', b'sup')
 
 
 def test_multipublish():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(11) == 'MPUB topic\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(11) == b'MPUB topic\n'
 
         size = nsq.unpack_size(socket.recv(4))
         data = socket.recv(size)
@@ -190,42 +192,42 @@ def test_multipublish():
         head, data = data[:4], data[4:]
         assert nsq.unpack_size(head) == 2
 
-        for _ in xrange(2):
+        for _ in range(2):
             head, data = data[:4], data[4:]
             assert nsq.unpack_size(head) == 3
 
             head, data = data[:3], data[3:]
-            assert head == 'sup'
+            assert head == b'sup'
 
-        assert data == ''
+        assert data == b''
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
         conn.connect()
-        conn.multipublish('topic', ['sup', 'sup'])
+        conn.multipublish('topic', [b'sup', b'sup'])
 
 
 @pytest.mark.parametrize('error_msg,error,fatal', [
-    ('E_INVALID cannot SUB in current state', 'NSQInvalid', True),
-    ('E_BAD_BODY MPUB failed to read body size', 'NSQBadBody', True),
-    ('E_BAD_TOPIC SUB topic name oh my god is not valid', 'NSQBadTopic', True),
-    ('E_BAD_CHANNEL SUB channel name !! is not valid', 'NSQBadChannel', True),
-    ('E_BAD_MESSAGE PUB failed to read message body', 'NSQBadMessage', True),
-    ('E_PUT_FAILED PUT failed', 'NSQPutFailed', True),
-    ('E_PUB_FAILED PUB failed', 'NSQPubFailed', True),
-    ('E_MPUB_FAILED MPUB failed', 'NSQMPubFailed', True),
-    ('E_AUTH_DISABLED AUTH Disabled', 'NSQAuthDisabled', True),
-    ('E_AUTH_FAILED AUTH failed', 'NSQAuthFailed', True),
-    ('E_UNAUTHORIZED AUTH No authorizations found', 'NSQUnauthorized', True),
-    ('E_FIN_FAILED FIN failed', 'NSQFinishFailed', False),
-    ('E_REQ_FAILED REQ failed', 'NSQRequeueFailed', False),
-    ('E_TOUCH_FAILED TOUCH failed', 'NSQTouchFailed', False),
-    ('some unknown error', 'NSQException', True),
+    (b'E_INVALID cannot SUB in current state', 'NSQInvalid', True),
+    (b'E_BAD_BODY MPUB failed to read body size', 'NSQBadBody', True),
+    (b'E_BAD_TOPIC SUB topic name oh my god is not valid', 'NSQBadTopic', True),
+    (b'E_BAD_CHANNEL SUB channel name !! is not valid', 'NSQBadChannel', True),
+    (b'E_BAD_MESSAGE PUB failed to read message body', 'NSQBadMessage', True),
+    (b'E_PUT_FAILED PUT failed', 'NSQPutFailed', True),
+    (b'E_PUB_FAILED PUB failed', 'NSQPubFailed', True),
+    (b'E_MPUB_FAILED MPUB failed', 'NSQMPubFailed', True),
+    (b'E_AUTH_DISABLED AUTH Disabled', 'NSQAuthDisabled', True),
+    (b'E_AUTH_FAILED AUTH failed', 'NSQAuthFailed', True),
+    (b'E_UNAUTHORIZED AUTH No authorizations found', 'NSQUnauthorized', True),
+    (b'E_FIN_FAILED FIN failed', 'NSQFinishFailed', False),
+    (b'E_REQ_FAILED REQ failed', 'NSQRequeueFailed', False),
+    (b'E_TOUCH_FAILED TOUCH failed', 'NSQTouchFailed', False),
+    (b'some unknown error', 'NSQException', True),
 ])
 def test_error(error_msg, error, fatal):
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
+        assert socket.recv(4) == b'  V2'
         socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
 
     with handle as server:
@@ -252,23 +254,23 @@ def test_hashing():
 def test_sync_receive_messages():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(9) == 'IDENTIFY\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(9) == b'IDENTIFY\n'
 
         size = nsq.unpack_size(socket.recv(4))
-        data = json.loads(socket.recv(size))
+        data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert isinstance(data, dict)
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, 'OK'))
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
-        msg = 'SUB topic channel\n'
+        msg = b'SUB topic channel\n'
         assert socket.recv(len(msg)) == msg
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, 'OK'))
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
-        for i in xrange(10):
-            assert socket.recv(6) == 'RDY 1\n'
+        for i in range(10):
+            assert socket.recv(6) == b'RDY 1\n'
 
-            body = json.dumps({'data': {'test_key': i}})
+            body = six.b(json.dumps({'data': {'test_key': i}}))
             ts = i * 1000 * 1000
             socket.send(mock_response_message(ts, i, i, body))
 
@@ -282,26 +284,26 @@ def test_sync_receive_messages():
         frame, data = conn.read_response()
 
         assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        assert data == b'OK'
 
-        for i in xrange(10):
+        for i in range(10):
             conn.ready(1)
             frame, msg = conn.read_response()
 
             assert frame == nsq.FRAME_TYPE_MESSAGE
             assert isinstance(msg, Message)
             assert msg.timestamp == i * 1000 * 1000
-            assert msg.id == '%016d' % i
+            assert msg.id == b'%016d' % i
             assert msg.attempts == i
-            assert json.loads(msg.body)['data']['test_key'] == i
+            assert json.loads(msg.body.decode('utf-8'))['data']['test_key'] == i
 
 
 def test_sync_heartbeat():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, '_heartbeat_'))
-        assert socket.recv(4) == 'NOP\n'
+        assert socket.recv(4) == b'  V2'
+        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'_heartbeat_'))
+        assert socket.recv(4) == b'NOP\n'
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -309,26 +311,26 @@ def test_sync_heartbeat():
 
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == '_heartbeat_'
+        assert data == b'_heartbeat_'
 
 
 def test_auth():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(5) == 'AUTH\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(5) == b'AUTH\n'
 
         assert nsq.unpack_size(socket.recv(4)) == 6
-        assert socket.recv(6) == 'secret'
+        assert socket.recv(6) == b'secret'
 
-        resp = json.dumps({'identity': 'awesome'})
+        resp = six.b(json.dumps({'identity': 'awesome'}))
         socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
         conn = Nsqd(
             address='127.0.0.1',
             tcp_port=server.server_port,
-            auth_secret='secret'
+            auth_secret=b'secret'
         )
 
         conn.connect()
@@ -339,28 +341,28 @@ def test_auth():
 def test_identify_auth():
     @mock_server
     def handle(socket, address):
-        assert socket.recv(4) == '  V2'
-        assert socket.recv(9) == 'IDENTIFY\n'
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(9) == b'IDENTIFY\n'
 
         size = nsq.unpack_size(socket.recv(4))
-        data = json.loads(socket.recv(size))
+        data = json.loads(socket.recv(size).decode('utf-8'))
         assert 'gnsq' in data['user_agent']
 
-        resp = json.dumps({'auth_required': True})
+        resp = six.b(json.dumps({'auth_required': True}))
         socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
-        assert socket.recv(5) == 'AUTH\n'
+        assert socket.recv(5) == b'AUTH\n'
         assert nsq.unpack_size(socket.recv(4)) == 6
-        assert socket.recv(6) == 'secret'
+        assert socket.recv(6) == b'secret'
 
-        resp = json.dumps({'identity': 'awesome'})
+        resp = six.b(json.dumps({'identity': 'awesome'}))
         socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
         conn = Nsqd(
             address='127.0.0.1',
             tcp_port=server.server_port,
-            auth_secret='secret'
+            auth_secret=b'secret'
         )
 
         @conn.on_auth.connect
@@ -434,20 +436,20 @@ def test_socket_upgrades(tls, deflate, snappy):
         if snappy:
             assert isinstance(conn.stream.socket, SnappySocket)
 
-        conn.publish('topic', 'sup')
+        conn.publish('topic', b'sup')
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        assert data == b'OK'
 
         conn.subscribe('topic', 'channel')
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_RESPONSE
-        assert data == 'OK'
+        assert data == b'OK'
 
         conn.ready(1)
         frame, data = conn.read_response()
         assert frame == nsq.FRAME_TYPE_MESSAGE
-        assert data.body == 'sup'
+        assert data.body == b'sup'
 
         conn.close_stream()
 

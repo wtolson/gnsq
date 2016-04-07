@@ -9,7 +9,7 @@ from integration_server import NsqdIntegrationServer
 def test_basic():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
-        assert conn.ping() == 'OK'
+        assert conn.ping() == b'OK'
         assert 'topics' in conn.stats()
         assert 'version' in conn.info()
 
@@ -54,7 +54,7 @@ def test_publish():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
 
-        conn.publish('topic', 'sup')
+        conn.publish('topic', b'sup')
         assert conn.stats()['topics'][0]['depth'] == 1
 
         conn.multipublish('topic', ['sup', 'sup'])
@@ -68,7 +68,7 @@ def test_publish():
 
         conn.create_topic('topic')
         conn.create_channel('topic', 'channel')
-        conn.publish('topic', 'sup')
+        conn.publish('topic', b'sup')
         assert conn.stats()['topics'][0]['channels'][0]['depth'] == 1
 
         conn.empty_channel('topic', 'channel')

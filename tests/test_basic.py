@@ -1,5 +1,6 @@
 import pytest
 
+from six.moves import range
 from gnsq import BackoffTimer
 from gnsq import protocol as nsq
 
@@ -65,14 +66,14 @@ def test_backoff_timer():
     assert timer.c == 1
     assert not timer.is_reset()
 
-    for _ in xrange(100):
+    for _ in range(100):
         interval = timer.get_interval()
         assert interval > 0 and interval < 2
 
     timer.failure()
     assert timer.c == 2
 
-    for _ in xrange(100):
+    for _ in range(100):
         interval = timer.get_interval()
         assert interval > 0 and interval < 4
 
@@ -80,7 +81,7 @@ def test_backoff_timer():
     assert timer.get_interval() == 0
     assert timer.is_reset()
 
-    for _ in xrange(100):
+    for _ in range(100):
         timer.failure()
 
     assert timer.c == 100

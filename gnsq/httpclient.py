@@ -32,7 +32,7 @@ class HTTPClient(object):
 
     def _http_check_json(self, response):
         try:
-            data = json.loads(response.data)
+            data = json.loads(response.data.decode('utf-8'))
         except ValueError:
             return self._http_check(response)
 

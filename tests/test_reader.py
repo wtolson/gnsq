@@ -1,10 +1,11 @@
-from __future__ import with_statement
+from __future__ import division, with_statement
 
 import multiprocessing
 import time
 import pytest
 import gevent
 
+from six.moves import range
 from gnsq import Nsqd, Reader, states
 from gnsq.errors import NSQSocketError
 
@@ -74,8 +75,8 @@ def test_messages():
             http_port=server.http_port,
         )
 
-        for _ in xrange(Accounting.total):
-            conn.publish_http('test', 'danger zone!')
+        for _ in range(Accounting.total):
+            conn.publish_http('test', b'danger zone!')
 
         reader = Reader(
             topic='test',
@@ -93,7 +94,7 @@ def test_messages():
 
         @reader.on_message.connect
         def handler(reader, message):
-            assert message.body == 'danger zone!'
+            assert message.body == b'danger zone!'
 
             Accounting.count += 1
             if Accounting.count == Accounting.total:
@@ -128,8 +129,8 @@ def test_max_concurrency():
                 http_port=server.http_port,
             )
 
-            for _ in xrange(Accounting.total / 2):
-                conn.publish_http('test', 'danger zone!')
+            for _ in range(Accounting.total // 2):
+                conn.publish_http('test', b'danger zone!')
 
         reader = Reader(
             topic='test',
@@ -151,7 +152,7 @@ def test_max_concurrency():
 
         @reader.on_message.connect
         def handler(reader, message):
-            assert message.body == 'danger zone!'
+            assert message.body == b'danger zone!'
             assert Accounting.concurrency == 0
 
             Accounting.concurrency += 1
@@ -191,8 +192,8 @@ def test_lookupd():
                     http_port=server.http_port,
                 )
 
-                for _ in xrange(Accounting.total / 2):
-                    conn.publish_http('test', 'danger zone!')
+                for _ in range(Accounting.total // 2):
+                    conn.publish_http('test', b'danger zone!')
 
             reader = Reader(
                 topic='test',
@@ -210,7 +211,7 @@ def test_lookupd():
 
             @reader.on_message.connect
             def handler(reader, message):
-                assert message.body == 'danger zone!'
+                assert message.body == b'danger zone!'
 
                 Accounting.count += 1
                 if Accounting.count == Accounting.total:
@@ -233,7 +234,7 @@ def test_backoff():
             http_port=server.http_port,
         )
 
-        for _ in xrange(500):
+        for _ in range(500):
             conn.publish_http('test', 'danger zone!')
 
         reader = Reader(
