@@ -40,10 +40,10 @@ lint:
 	flake8 gnsq tests
 
 test:
-	py.test tests --log-format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'
+	py.test tests
 
 test-fast:
-	py.test tests --fast --log-format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'
+	py.test tests --fast
 
 test-all:
 	tox
