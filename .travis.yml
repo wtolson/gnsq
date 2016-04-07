@@ -26,7 +26,7 @@ env:
 install:
   - sudo apt-get install libsnappy-dev libevent-dev
   - pip install -e .
-  - pip install pytest python-snappy
+  - pip install pytest pytest-timeout python-snappy
   - wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION.tar.gz
   - tar zxvf nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION.tar.gz
   - sudo cp nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqd nsq-$NSQ_VERSION.linux-amd64.go$GO_VERSION/bin/nsqlookupd /usr/local/bin
