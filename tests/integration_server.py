@@ -67,8 +67,10 @@ class BaseIntegrationServer(object):
                 continue
 
             match = self.protocol_re.match(line)
-            protocol = match.group('protocol')
+            if not match:
+                raise Exception('unexpected line: %r' % line)
 
+            protocol = match.group('protocol')
             if protocol not in self.protocols:
                 continue
 
