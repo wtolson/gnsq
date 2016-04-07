@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -57,10 +58,13 @@ class BaseIntegrationServer(object):
 
     def _parse_protocol_ports(self):
         while len(self.protocol_ports) < len(self.protocols):
-            line = self.child.stderr.readline().decode('utf-8')
+            line = self.child.stderr.readline()
+            sys.stderr.write(line)
+
             if not line:
                 raise Exception('server exited prematurely')
 
+            line = line.decode('utf-8')
             if 'listening on' not in line:
                 continue
 
@@ -87,6 +91,12 @@ class BaseIntegrationServer(object):
             if error.errno == errno.ESRCH:
                 return
             raise
+
+        while True:
+            line = self.child.stderr.readline()
+            if not line:
+                break
+            sys.stderr.write(line)
 
         self.child.wait()
         shutil.rmtree(self.data_path)
