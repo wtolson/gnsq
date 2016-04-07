@@ -59,7 +59,7 @@ class Stream(object):
             )
 
         except socket.error as error:
-            raise NSQSocketError(*error)
+            raise NSQSocketError(*error.args)
 
         self.state = CONNECTED
         self.worker = gevent.spawn(self.send_loop)
@@ -74,7 +74,7 @@ class Stream(object):
                 if error.errno in (EDEADLK, EAGAIN, EWOULDBLOCK):
                     gevent.sleep()
                     continue
-                raise NSQSocketError(*error)
+                raise NSQSocketError(*error.args)
 
             if not packet:
                 self.close()
@@ -120,7 +120,7 @@ class Stream(object):
                 result.set()
 
             except socket.error as error:
-                result.set_exception(NSQSocketError(*error))
+                result.set_exception(NSQSocketError(*error.args))
 
             except Exception as error:
                 result.set_exception(error)
