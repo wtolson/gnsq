@@ -8,6 +8,7 @@ History
 ~~~~~~~~~~~~~~~~~~
 
 * Add support for Python 3 and PyPy.
+* #7 - Fix undeclared variable in compression socket.
 
 
 0.3.1 (2015-11-06)

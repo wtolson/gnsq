@@ -24,9 +24,10 @@ class CompressionSocket(object):
             return data
 
         chunk = self._socket.recv(size)
-        if chunk:
-            uncompressed = self.decompress(chunk)
+        if not chunk:
+            return chunk
 
+        uncompressed = self.decompress(chunk)
         if not uncompressed:
             raise NSQSocketError(EWOULDBLOCK, 'Operation would block')
 
