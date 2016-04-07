@@ -80,6 +80,7 @@ class BaseIntegrationServer(object):
             self.protocol_ports[protocol] = port
 
     def __enter__(self):
+        sys.stderr.write(b'running: %s\n' % six.b(' '.join(self.cmd)))
         self.child = subprocess.Popen(self.cmd, stderr=subprocess.PIPE)
         self._parse_protocol_ports()
         return self
