@@ -37,8 +37,7 @@ Or even better, if you have virtualenvwrapper installed::
     $ mkvirtualenv gnsq
     $ pip install gnsq
 
-Currently there is support for Python 2.6 and Python 2.7. Support for Python 3
-is dependent on `gevent support`_.
+Currently there is support for Python 2.6+, Python 3.3+ and PyPy.
 
 Usage
 -----
@@ -88,6 +87,5 @@ environment.
 .. _gevent: http://gevent.org/
 .. _NSQ: http://nsq.io/
 .. _Blinker: http://pythonhosted.org/blinker/
-.. _gevent support: https://github.com/surfly/gevent/issues/38
 .. _installed and running: http://nsq.io/overview/quick_start.html
 .. _contributing guide: https://github.com/wtolson/gnsq/blob/master/CONTRIBUTING.rst
