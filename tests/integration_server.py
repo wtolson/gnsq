@@ -1,11 +1,9 @@
+import errno
 import os
-import random
-import time
+import re
 import shutil
 import subprocess
 import tempfile
-import os.path
-import urllib3
 
 
 def with_all(head, *tail):
@@ -19,21 +17,19 @@ def with_all(head, *tail):
 
 
 class BaseIntegrationServer(object):
-    http = urllib3.PoolManager()
+    protocols = ('TCP', 'HTTP')
 
-    def __init__(self, address=None, tcp_port=None, http_port=None):
-        if address is None:
-            address = '127.0.0.1'
+    protocol_re = re.compile(' '.join([
+        r'\[(?P<name>[a-z]+)\]',
+        r'(?P<timestamp>[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]+)',
+        r'(?P<protocol>[A-Z]+):',
+        r'listening on',
+        r'(?P<address>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):(?P<port>[0-9]+)',
+    ]))
 
-        if tcp_port is None:
-            tcp_port = random.randint(10000, 65535)
-
-        if http_port is None:
-            http_port = tcp_port + 1
-
+    def __init__(self, address='127.0.0.1'):
         self.address = address
-        self.tcp_port = tcp_port
-        self.http_port = http_port
+        self.protocol_ports = {}
         self.data_path = tempfile.mkdtemp()
 
     @property
@@ -46,35 +42,53 @@ class BaseIntegrationServer(object):
         raise NotImplementedError('cmd not implemented')
 
     @property
+    def tcp_port(self):
+        return self.protocol_ports['TCP']
+
+    @property
     def tcp_address(self):
         return '%s:%d' % (self.address, self.tcp_port)
+
+    @property
+    def http_port(self):
+        return self.protocol_ports['HTTP']
 
     @property
     def http_address(self):
         return '%s:%d' % (self.address, self.http_port)
 
-    def is_running(self):
-        try:
-            url = 'http://%s/ping' % self.http_address
-            return self.http.request('GET', url).data == 'OK'
-        except urllib3.exceptions.HTTPError:
-            return False
+    def _parse_protocol_ports(self):
+        while len(self.protocol_ports) < len(self.protocols):
+            line = self.child.stderr.readline().decode('utf-8')
+            if not line:
+                raise Exception('server exited prematurely')
 
-    def wait(self):
-        for attempt in xrange(12):
-            if self.is_running():
-                return
-            time.sleep(0.01 * pow(2, attempt))
-        raise RuntimeError('unable to start: %r' % ' '.join(self.cmd))
+            if 'listening on' not in line:
+                continue
+
+            match = self.protocol_re.match(line)
+            protocol = match.group('protocol')
+
+            if protocol not in self.protocols:
+                continue
+
+            port = int(match.group('port'), 10)
+            self.protocol_ports[protocol] = port
 
     def __enter__(self):
-        self.subp = subprocess.Popen(self.cmd)
-        self.wait()
+        self.child = subprocess.Popen(self.cmd, stderr=subprocess.PIPE)
+        self._parse_protocol_ports()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.subp.terminate()
-        self.subp.wait()
+        try:
+            self.child.terminate()
+        except OSError as error:
+            if error.errno == errno.ESRCH:
+                return
+            raise
+
+        self.child.wait()
         shutil.rmtree(self.data_path)
 
 
@@ -83,12 +97,18 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
 
     def __init__(self, lookupd=None, **kwargs):
+        if self.has_https():
+            self.protocols = ('TCP', 'HTTP', 'HTTPS')
+
         self.lookupd = lookupd
         super(NsqdIntegrationServer, self).__init__(**kwargs)
 
+    def has_https(self):
+        return self.version >= (0, 2, 28)
+
     @property
     def https_port(self):
-        return self.http_port + 1
+        return self.protocol_ports['HTTPS']
 
     @property
     def https_address(self):
@@ -98,15 +118,15 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         cmd = [
             'nsqd',
-            '--tcp-address', self.tcp_address,
-            '--http-address', self.http_address,
+            '--tcp-address', '%s:0' % self.address,
+            '--http-address', '%s:0' % self.address,
             '--data-path', self.data_path,
             '--tls-cert', self.tls_cert,
             '--tls-key', self.tls_key,
         ]
 
-        if self.version >= (0, 2, 28):
-            cmd.extend(['--https-address', self.https_address])
+        if self.has_https():
+            cmd.extend(['--https-address', '%s:0' % self.address])
 
         if self.lookupd:
             cmd.extend(['--lookupd-tcp-address', self.lookupd])
@@ -119,6 +139,6 @@ class LookupdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         return [
             'nsqlookupd',
-            '--tcp-address', self.tcp_address,
-            '--http-address', self.http_address,
+            '--tcp-address', '%s:0' % self.address,
+            '--http-address', '%s:0' % self.address,
         ]

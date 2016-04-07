@@ -172,56 +172,56 @@ def test_max_concurrency():
 
 @pytest.mark.slow
 def test_lookupd():
-    lookupd_server = LookupdIntegrationServer()
-    server1 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
-    server2 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
+    with LookupdIntegrationServer() as lookupd_server:
+        server1 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
+        server2 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
 
-    @with_all(lookupd_server, server1, server2)
-    def _(lookupd_server, server1, server2):
-        class Accounting(object):
-            count = 0
-            total = 500
-            concurrency = 0
-            error = None
+        @with_all(server1, server2)
+        def _(server1, server2):
+            class Accounting(object):
+                count = 0
+                total = 500
+                concurrency = 0
+                error = None
 
-        for server in (server1, server2):
-            conn = Nsqd(
-                address=server.address,
-                tcp_port=server.tcp_port,
-                http_port=server.http_port,
+            for server in (server1, server2):
+                conn = Nsqd(
+                    address=server.address,
+                    tcp_port=server.tcp_port,
+                    http_port=server.http_port,
+                )
+
+                for _ in xrange(Accounting.total / 2):
+                    conn.publish_http('test', 'danger zone!')
+
+            reader = Reader(
+                topic='test',
+                channel='test',
+                lookupd_http_addresses=lookupd_server.http_address,
+                max_in_flight=32,
             )
 
-            for _ in xrange(Accounting.total / 2):
-                conn.publish_http('test', 'danger zone!')
-
-        reader = Reader(
-            topic='test',
-            channel='test',
-            lookupd_http_addresses=lookupd_server.http_address,
-            max_in_flight=32,
-        )
-
-        @reader.on_exception.connect
-        def error_handler(reader, message, error):
-            if isinstance(error, NSQSocketError):
-                return
-            Accounting.error = error
-            reader.close()
-
-        @reader.on_message.connect
-        def handler(reader, message):
-            assert message.body == 'danger zone!'
-
-            Accounting.count += 1
-            if Accounting.count == Accounting.total:
+            @reader.on_exception.connect
+            def error_handler(reader, message, error):
+                if isinstance(error, NSQSocketError):
+                    return
+                Accounting.error = error
                 reader.close()
 
-        reader.start()
+            @reader.on_message.connect
+            def handler(reader, message):
+                assert message.body == 'danger zone!'
 
-        if Accounting.error:
-            raise Accounting.error
+                Accounting.count += 1
+                if Accounting.count == Accounting.total:
+                    reader.close()
 
-        assert Accounting.count == Accounting.total
+            reader.start()
+
+            if Accounting.error:
+                raise Accounting.error
+
+            assert Accounting.count == Accounting.total
 
 
 @pytest.mark.slow
