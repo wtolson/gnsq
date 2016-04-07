@@ -4,6 +4,7 @@
 # Install our development requirements
 flake8
 pytest
+pytest-timeout
 python-snappy
 tox
 wheel>=0.22

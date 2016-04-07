@@ -11,6 +11,7 @@ from integration_server import (
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_basic():
     with LookupdIntegrationServer() as server:
         lookupd = gnsq.Lookupd(server.http_address)
@@ -26,6 +27,7 @@ def test_basic():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_lookup():
     with LookupdIntegrationServer() as lookupd_server:
         nsqd_server = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)

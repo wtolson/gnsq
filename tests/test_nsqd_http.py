@@ -6,6 +6,7 @@ from integration_server import NsqdIntegrationServer
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_basic():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
@@ -15,6 +16,7 @@ def test_basic():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_topics_channels():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)
@@ -50,6 +52,7 @@ def test_topics_channels():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_publish():
     with NsqdIntegrationServer() as server:
         conn = gnsq.Nsqd(server.address, http_port=server.http_port)

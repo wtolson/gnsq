@@ -61,6 +61,7 @@ def test_basic():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_messages():
     with NsqdIntegrationServer() as server:
 
@@ -110,6 +111,7 @@ def test_messages():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_max_concurrency():
     server1 = NsqdIntegrationServer()
     server2 = NsqdIntegrationServer()
@@ -172,6 +174,7 @@ def test_max_concurrency():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_lookupd():
     with LookupdIntegrationServer() as lookupd_server:
         server1 = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
@@ -226,6 +229,7 @@ def test_lookupd():
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_backoff():
     with NsqdIntegrationServer() as server:
         conn = Nsqd(

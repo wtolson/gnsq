@@ -381,6 +381,7 @@ def test_identify_auth():
 
 @pytest.mark.parametrize('tls,deflate,snappy', product((True, False), repeat=3))
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_socket_upgrades(tls, deflate, snappy):
     with NsqdIntegrationServer() as server:
         options = {
@@ -455,6 +456,7 @@ def test_socket_upgrades(tls, deflate, snappy):
 
 
 @pytest.mark.slow
+@pytest.mark.timeout(60)
 def test_cls_error():
     with NsqdIntegrationServer() as server:
         conn = Nsqd(address=server.address, tcp_port=server.tcp_port)
