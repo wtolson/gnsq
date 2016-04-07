@@ -220,6 +220,7 @@ def test_lookupd():
                 if Accounting.count == Accounting.total:
                     reader.close()
 
+            gevent.sleep(0.1)
             reader.start()
 
             if Accounting.error:

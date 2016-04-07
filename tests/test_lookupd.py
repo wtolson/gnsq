@@ -34,6 +34,7 @@ def test_lookup():
         with NsqdIntegrationServer(lookupd=lookupd_server.tcp_address) as nsqd_server:
             lookupd = gnsq.Lookupd(lookupd_server.http_address)
             conn = gnsq.Nsqd(nsqd_server.address, http_port=nsqd_server.http_port)
+            gevent.sleep(0.1)
 
             assert len(lookupd.topics()['topics']) == 0
             assert len(lookupd.channels('topic')['channels']) == 0
