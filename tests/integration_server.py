@@ -1,7 +1,9 @@
 import errno
 import os
+import random
 import re
 import shutil
+import six
 import subprocess
 import sys
 import tempfile
@@ -55,6 +57,14 @@ class BaseIntegrationServer(object):
     @property
     def http_address(self):
         return '%s:%d' % (self.address, self.http_port)
+
+    def _random_port(self):
+        if self.version < (0, 3, 5):
+            return random.randint(10000, 65535)
+        return 0
+
+    def _random_address(self):
+        return '%s:%d' % (self.address, self._random_port())
 
     def _parse_protocol_ports(self):
         while len(self.protocol_ports) < len(self.protocols):
@@ -129,15 +139,15 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         cmd = [
             'nsqd',
-            '--tcp-address', '%s:0' % self.address,
-            '--http-address', '%s:0' % self.address,
+            '--tcp-address', self._random_address(),
+            '--http-address', self._random_address(),
             '--data-path', self.data_path,
             '--tls-cert', self.tls_cert,
             '--tls-key', self.tls_key,
         ]
 
         if self.has_https():
-            cmd.extend(['--https-address', '%s:0' % self.address])
+            cmd.extend(['--https-address', self._random_address()])
 
         if self.lookupd:
             cmd.extend(['--lookupd-tcp-address', self.lookupd])
@@ -150,6 +160,6 @@ class LookupdIntegrationServer(BaseIntegrationServer):
     def cmd(self):
         return [
             'nsqlookupd',
-            '--tcp-address', '%s:0' % self.address,
-            '--http-address', '%s:0' % self.address,
+            '--tcp-address', self._random_address(),
+            '--http-address', self._random_address(),
         ]
