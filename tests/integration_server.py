@@ -20,8 +20,6 @@ class BaseIntegrationServer(object):
     protocols = ('TCP', 'HTTP')
 
     protocol_re = re.compile(' '.join([
-        r'\[(?P<name>[a-z]+)\]',
-        r'(?P<timestamp>[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]+)',
         r'(?P<protocol>[A-Z]+):',
         r'listening on',
         r'(?P<address>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):(?P<port>[0-9]+)',
@@ -66,7 +64,7 @@ class BaseIntegrationServer(object):
             if 'listening on' not in line:
                 continue
 
-            match = self.protocol_re.match(line)
+            match = self.protocol_re.search(line)
             if not match:
                 raise Exception('unexpected line: %r' % line)
 
