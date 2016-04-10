@@ -4,7 +4,7 @@ History
 -------
 
 
-0.3.2 (TBD)
+0.3.2 (2016-04-10)
 ~~~~~~~~~~~~~~~~~~
 
 * Add support for Python 3 and PyPy.
