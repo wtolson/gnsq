@@ -4,8 +4,8 @@ History
 -------
 
 
-0.3.3 (TBD)
-~~~~~~~~~~~
+0.3.3 (2016-09-25)
+~~~~~~~~~~~~~~~~~~
 
 * #11 - Make sure all socket data is sent.
 * #5 - Add support for DPUB (defered publish).
