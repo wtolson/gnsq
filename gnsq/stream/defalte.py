@@ -19,5 +19,5 @@ class DefalteSocket(CompressionSocket):
         return self._decompressor.decompress(data)
 
     def close(self):
-        self._socket.send(self._compressor.flush(zlib.Z_FINISH))
+        self._socket.sendall(self._compressor.flush(zlib.Z_FINISH))
         self._socket.close()

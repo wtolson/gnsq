@@ -33,5 +33,5 @@ class CompressionSocket(object):
 
         return uncompressed
 
-    def send(self, data):
-        self._socket.send(self.compress(data))
+    def sendall(self, data):
+        self._socket.sendall(self.compress(data))

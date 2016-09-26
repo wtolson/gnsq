@@ -116,7 +116,7 @@ class Stream(object):
                 result.set_exception(error)
 
             try:
-                self.socket.send(data)
+                self.socket.sendall(data)
                 result.set()
 
             except socket.error as error:

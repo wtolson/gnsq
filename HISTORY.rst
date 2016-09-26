@@ -4,6 +4,12 @@ History
 -------
 
 
+0.3.3 (TBD)
+~~~~~~~~~~~
+
+* #11 - Make sure all socket data is sent.
+
+
 0.3.2 (2016-04-10)
 ~~~~~~~~~~~~~~~~~~
 
