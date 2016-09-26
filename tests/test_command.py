@@ -60,7 +60,10 @@ def pytest_generate_tests(metafunc):
                     b'PUB test\n' + struct.pack('>l', len(msgs[0])) + msgs[0]),
                 ('multipublish',
                     {'topic_name': 'test', 'messages': msgs},
-                    b'MPUB test\n' + struct.pack('>l', len(mpub_body)) + mpub_body)
+                    b'MPUB test\n' + struct.pack('>l', len(mpub_body)) + mpub_body),
+                ('deferpublish',
+                    {'topic_name': 'test', 'data': msgs[0], 'delay_ms': 42},
+                    b'DPUB test 42\n' + struct.pack('>l', len(msgs[0])) + msgs[0]),
                 ]:
             metafunc.addcall(funcargs=dict(cmd_method=cmd_method, kwargs=kwargs, result=result))
 

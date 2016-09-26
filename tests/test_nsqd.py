@@ -207,6 +207,21 @@ def test_multipublish():
         conn.multipublish('topic', [b'sup', b'sup'])
 
 
+def test_deferpublish():
+    @mock_server
+    def handle(socket, address):
+        assert socket.recv(4) == b'  V2'
+        assert socket.recv(14) == b'DPUB topic 42\n'
+
+        assert nsq.unpack_size(socket.recv(4)) == 3
+        assert socket.recv(3) == b'sup'
+
+    with handle as server:
+        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn.connect()
+        conn.publish('topic', b'sup', defer=42)
+
+
 @pytest.mark.parametrize('error_msg,error,fatal', [
     (b'E_INVALID cannot SUB in current state', 'NSQInvalid', True),
     (b'E_BAD_BODY MPUB failed to read body size', 'NSQBadBody', True),

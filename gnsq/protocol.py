@@ -40,6 +40,7 @@ AUTH = b'AUTH'
 SUB = b'SUB'
 PUB = b'PUB'
 MPUB = b'MPUB'
+DPUB = b'DPUB'
 RDY = b'RDY'
 FIN = b'FIN'
 REQ = b'REQ'
@@ -152,6 +153,11 @@ def multipublish(topic_name, messages):
     assert_valid_topic_name(topic_name)
     data = EMPTY.join(_packbody(m) for m in messages)
     return _command(MPUB, _packsize(messages) + data, topic_name)
+
+
+def deferpublish(topic_name, data, delay_ms):
+    assert_valid_topic_name(topic_name)
+    return _command(DPUB, data, topic_name, six.b('%d' % delay_ms))
 
 
 def ready(count):

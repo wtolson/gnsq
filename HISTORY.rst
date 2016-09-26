@@ -8,6 +8,7 @@ History
 ~~~~~~~~~~~
 
 * #11 - Make sure all socket data is sent.
+* #5 - Add support for DPUB (defered publish).
 
 
 0.3.2 (2016-04-10)

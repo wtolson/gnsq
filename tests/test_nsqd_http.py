@@ -76,3 +76,11 @@ def test_publish():
 
         conn.empty_channel('topic', 'channel')
         assert conn.stats()['topics'][0]['channels'][0]['depth'] == 0
+
+        if server.version < (0, 3, 6):
+            return
+
+        conn.publish('topic', b'sup', 60 * 1000)
+        stats = conn.stats()
+        assert stats['topics'][0]['channels'][0]['depth'] == 0
+        assert stats['topics'][0]['channels'][0]['deferred_count'] == 1

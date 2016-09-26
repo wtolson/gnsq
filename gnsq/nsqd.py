@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import blinker
 import time
+import six
 from gevent import socket
 
 try:
@@ -426,9 +427,12 @@ class Nsqd(HTTPClient):
         """Subscribe to a nsq `topic` and `channel`."""
         self.send(nsq.subscribe(topic, channel))
 
-    def publish_tcp(self, topic, data):
+    def publish_tcp(self, topic, data, defer=None):
         """Publish a message to the given topic over tcp."""
-        self.send(nsq.publish(topic, data))
+        if defer is None:
+            self.send(nsq.publish(topic, data))
+        else:
+            self.send(nsq.deferpublish(topic, data, defer))
 
     def multipublish_tcp(self, topic, messages):
         """Publish an iterable of messages to the given topic over tcp."""
@@ -473,10 +477,15 @@ class Nsqd(HTTPClient):
     def base_url(self):
         return 'http://%s:%s/' % (self.address, self.http_port)
 
-    def publish_http(self, topic, data):
+    def publish_http(self, topic, data, defer=None):
         """Publish a message to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
-        return self.http_post('/put', fields={'topic': topic}, body=data)
+        fields = {'topic': topic}
+
+        if defer is not None:
+            fields['defer'] = six.b('%d' % defer)
+
+        return self.http_post('/put', fields=fields, body=data)
 
     def _validate_http_mpub(self, message):
         if '\n' not in message:
@@ -572,16 +581,23 @@ class Nsqd(HTTPClient):
         """Returns version information."""
         return self.http_get('/info')
 
-    def publish(self, topic, data):
+    def publish(self, topic, data, defer=None):
         """Publish a message.
 
         If connected, the message will be sent over tcp. Otherwise it will
         fall back to http.
+
+        :param topic: the topic to publish to
+
+        :param data: the body of the message
+
+        :param defer: duration in millisconds to defer before publishing
+            (requires nsq 0.3.6)
         """
         if self.is_connected:
-            return self.publish_tcp(topic, data)
+            return self.publish_tcp(topic, data, defer)
         else:
-            return self.publish_http(topic, data)
+            return self.publish_http(topic, data, defer)
 
     def multipublish(self, topic, messages):
         """Publish an iterable of messages in one roundtrip.
