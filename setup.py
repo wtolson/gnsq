@@ -30,6 +30,7 @@ setup(
     url='https://github.com/wtolson/gnsq',
     packages=[
         'gnsq',
+        'gnsq.contrib',
         'gnsq.stream',
     ],
     package_dir={'gnsq': 'gnsq'},
