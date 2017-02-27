@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
+import warnings
 
 import gevent.queue
 import gevent.pool
 
 from gnsq.errors import NSQException
+
+
+TIMEOUT_WARNING = 'batching timed out. batch size may be to large'
 
 
 class BatchHandler(object):
@@ -19,7 +23,7 @@ class BatchHandler(object):
     """
     def __init__(self, batch_size, handle_batch=None, handle_message=None,
                  handle_batch_error=None, handle_message_error=None,
-                 timeout=None, spawn=gevent.spawn):
+                 timeout=10, spawn=gevent.spawn):
         self.logger = logging.getLogger(__name__)
         self.message_channel = gevent.queue.Channel()
         self.batch_size = batch_size
@@ -55,6 +59,7 @@ class BatchHandler(object):
                 try:
                     message = self.message_channel.get(timeout=self.timeout)
                 except gevent.queue.Empty:
+                    warnings.warn(TIMEOUT_WARNING, RuntimeWarning)
                     break
 
                 messages.append(message)
