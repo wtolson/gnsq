@@ -9,6 +9,10 @@ import gnsq
 class LogGiveupHandler(object):
     """Log messages on giveup.
 
+    Writes the message body to the log. This can be customized by subclassing
+    and implementing `format_message`. Assuming messages do not requeued using
+    the to_nsq utility.
+
     Example usage:
     >>> fp = open('topic.__BURY__.log', 'w')
     >>> reader.on_giving_up.connect(LogGiveupHandler(fp.write), weak=False)
@@ -18,20 +22,29 @@ class LogGiveupHandler(object):
         self.newline = newline
 
     def format_message(self, message):
-        data = json.dumps({
+        return message.body
+
+    def __call__(self, reader, message):
+        self.log(self.format_message(message) + self.newline)
+
+
+class JSONLogGiveupHandler(LogGiveupHandler):
+    """Log messages as json on giveup.
+
+    Works like `LogGiveupHandler` but serializes the message details as json
+    before writing to the log.
+
+    Example usage:
+    >>> fp = open('topic.__BURY__.log', 'w')
+    >>> reader.on_giving_up.connect(JSONLogGiveupHandler(fp.write), weak=False)
+    """
+    def format_message(self, message):
+        return json.dumps({
             'timestamp': message.timestamp,
             'attempts': message.attempts,
             'id': message.id,
             'body': message.body,
         })
-
-        if self.newline:
-            return data + self.newline
-
-        return data
-
-    def __call__(self, reader, message):
-        self.log(self.format_message(message))
 
 
 class NsqdGiveupHandler(object):
