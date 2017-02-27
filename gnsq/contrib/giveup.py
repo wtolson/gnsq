@@ -50,8 +50,13 @@ class JSONLogGiveupHandler(LogGiveupHandler):
 class NsqdGiveupHandler(object):
     """Send messages by to nsq on giveup.
 
+    Forwards the message body to the given topic where it can be inspected and
+    requeued. This can be customized by subclassing and implementing
+    `format_message`. Messages can be requeued with the nsq_to_nsq utility.
+
     Example usage:
-    >>> reader.on_giving_up.connect(NsqdGiveupHandler('topic.__BURY__'), weak=False)
+    >>> giveup_handler = NsqdGiveupHandler('topic.__BURY__')
+    >>> reader.on_giving_up.connect(giveup_handler)
     """
 
     def __init__(self, topic, nsqd_hosts=['localhost']):
@@ -60,6 +65,9 @@ class NsqdGiveupHandler(object):
         self.topic = topic
         self.nsqds = itertools.cycle([gnsq.Nsqd(host) for host in nsqd_hosts])
 
+    def format_message(self, message):
+        return message.body
+
     def __call__(self, reader, message):
         nsq = self.nsqds.next()
-        nsq.publish(self.topic, message.body)
+        nsq.publish(self.topic, self.format_message(message))
