@@ -10,12 +10,11 @@ from gnsq.errors import NSQException
 class BatchHandler(object):
     """Batch message handler for gnsq.
 
-    The batch handler assumes the reader has the following configurations. First
-    the reader to by in async mode and second the inflight should be larger then
-    the batch size.
+    The batch handler assumes the reader is in async mode and the inflight is
+    larger then the batch size.
 
     Example usage:
-    >>> reader = Reader(topic='topic', channel='worker', async=True, max_in_flight=16)
+    >>> reader = Reader('topic', 'worker', async=True, max_in_flight=16)
     >>> reader.on_message.connect(BatchHandler(8, my_handler), weak=False)
     """
     def __init__(self, batch_size, handle_batch=None, handle_message=None,
@@ -103,7 +102,7 @@ class BatchHandler(object):
                 self.handle_batch(batch)
             except Exception as error:
                 self.logger.exception('caught exception while handling batch')
-                self.handle_message_error(error, messages, batch)
+                self.handle_batch_error(error, messages, batch)
                 self.requeue_messages(messages)
                 return
 
@@ -116,6 +115,9 @@ class BatchHandler(object):
         The result of this function is what is passed to `handle_batch`. This
         may be overridden or passed into the construtor. By default it simply
         returns the message.
+
+        Raising an exception in `handle_message` will cause that message to be
+        requeued and excluded from the batch.
         """
         return message
 
@@ -124,6 +126,9 @@ class BatchHandler(object):
 
         Processes a batch of messages. You must provide a `handle_batch`
         function to the constructor or override this method.
+
+        Raising an exception in `handle_batch` will cause all messages in the
+        batch to be requeued.
         """
         raise RuntimeError('handle_message must be overridden')
 
