@@ -485,7 +485,7 @@ class Nsqd(HTTPClient):
         if defer is not None:
             fields['defer'] = six.b('%d' % defer)
 
-        return self.http_post('/put', fields=fields, body=data)
+        return self.http_post('/pub', fields=fields, body=data)
 
     def _validate_http_mpub(self, message):
         if '\n' not in message:
@@ -498,7 +498,7 @@ class Nsqd(HTTPClient):
         """Publish an iterable of messages to the given topic over http."""
         nsq.assert_valid_topic_name(topic)
         return self.http_post(
-            url='/mput',
+            url='/mpub',
             fields={'topic': topic},
             body='\n'.join(self._validate_http_mpub(m) for m in messages)
         )
@@ -506,19 +506,19 @@ class Nsqd(HTTPClient):
     def create_topic(self, topic):
         """Create a topic."""
         nsq.assert_valid_topic_name(topic)
-        return self.http_post('/create_topic', fields={'topic': topic})
+        return self.http_post('/topic/create', fields={'topic': topic})
 
     def delete_topic(self, topic):
         """Delete a topic."""
         nsq.assert_valid_topic_name(topic)
-        return self.http_post('/delete_topic', fields={'topic': topic})
+        return self.http_post('/topic/delete', fields={'topic': topic})
 
     def create_channel(self, topic, channel):
         """Create a channel for an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/create_channel',
+            url='/channel/create',
             fields={'topic': topic, 'channel': channel},
         )
 
@@ -527,21 +527,21 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/delete_channel',
+            url='/channel/delete',
             fields={'topic': topic, 'channel': channel},
         )
 
     def empty_topic(self, topic):
         """Empty all the queued messages for an existing topic."""
         nsq.assert_valid_topic_name(topic)
-        return self.http_post('/empty_topic', fields={'topic': topic})
+        return self.http_post('/topic/empty', fields={'topic': topic})
 
     def empty_channel(self, topic, channel):
         """Empty all the queued messages for an existing channel."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/empty_channel',
+            url='/channel/empty',
             fields={'topic': topic, 'channel': channel},
         )
 
@@ -553,7 +553,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/pause_channel',
+            url='/channel/pause',
             fields={'topic': topic, 'channel': channel},
         )
 
@@ -562,7 +562,7 @@ class Nsqd(HTTPClient):
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/unpause_channel',
+            url='/channel/unpause',
             fields={'topic': topic, 'channel': channel},
         )
 

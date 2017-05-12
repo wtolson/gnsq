@@ -33,14 +33,14 @@ class Lookupd(HTTPClient):
     def delete_topic(self, topic):
         """Deletes an existing topic."""
         nsq.assert_valid_topic_name(topic)
-        return self.http_post('/delete_topic', fields={'topic': topic})
+        return self.http_post('/topic/delete', fields={'topic': topic})
 
     def delete_channel(self, topic, channel):
         """Deletes an existing channel of an existing topic."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self.http_post(
-            url='/delete_channel',
+            url='/channel/delete',
             fields={'topic': topic, 'channel': channel},
         )
 
