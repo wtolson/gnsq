@@ -34,8 +34,9 @@ class BaseIntegrationServer(object):
 
     @property
     def version(self):
-        version = os.environ.get('NSQ_VERSION', '0.2.28')
-        return tuple([int(v) for v in version.split('.')])
+        version = os.environ.get('NSQ_VERSION', '0.2.30')
+        # .partition("-")[0] handles the 1.0.0-compat case.
+        return tuple([int(v.partition('-')[0]) for v in version.split('.')])
 
     @property
     def cmd(self):
