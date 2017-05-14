@@ -40,7 +40,11 @@ class HTTPClient(object):
             status_txt = data.get('status_txt', 'http error')
             raise NSQHttpError('%s <%s>' % (status_txt, response.status))
 
-        return data['data']
+        # Handle 1.0.0-compat vs 0.x versions
+        if 'data' in data:
+            return data['data']
+        else:
+            return data
 
     def http_get(self, url, **kwargs):
         return self.http_request('GET', url, **kwargs)
