@@ -22,7 +22,7 @@ else:
 
 setup(
     name='gnsq',
-    version='0.3.3',
+    version='0.4.0',
     description='A gevent based python client for NSQ.',
     long_description=readme + '\n\n' + history,
     author='Trevor Olson',

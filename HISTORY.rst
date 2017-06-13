@@ -4,6 +4,13 @@ History
 -------
 
 
+0.4.0 (2017-06-13)
+~~~~~~~~~~~~~~~~~~
+
+* #13 - Allow use with nsq v1.0.0 (thanks @daroot)
+* Add contrib package with utlities.
+
+
 0.3.3 (2016-09-25)
 ~~~~~~~~~~~~~~~~~~
 
