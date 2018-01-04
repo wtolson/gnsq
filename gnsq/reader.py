@@ -85,7 +85,7 @@ class Reader(object):
         multiple readers are running
 
     :param lookupd_poll_jitter: the maximum fractional amount of jitter to add
-        to the lookupd pool loop. This helps evenly distribute requests even if
+        to the lookupd poll loop. This helps evenly distribute requests even if
         multiple consumers restart at the same time.
 
     :param low_ready_idle_timeout: the amount of time in seconds to wait for a
