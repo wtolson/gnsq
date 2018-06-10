@@ -42,6 +42,7 @@ docs/_build/
 docs/gnsq.rst
 docs/gnsq.contrib.rst
 docs/gnsq.stream.rst
+docs/modules.rst
 
 # pyenv
 .python-version
