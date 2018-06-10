@@ -2,14 +2,15 @@
 gnsq
 ===============================
 
-.. image:: https://img.shields.io/pypi/v/gnsq.svg?style=flat
-    :target: https://pypi.python.org/pypi/gnsq
+.. image:: https://img.shields.io/pypi/v/gnsq.svg
+        :target: https://pypi.python.org/pypi/gnsq
 
-.. image:: https://img.shields.io/travis/wtolson/gnsq/master.svg?style=flat
+.. image:: https://img.shields.io/travis/wtolson/gnsq.svg
         :target: https://travis-ci.org/wtolson/gnsq
 
-.. image:: https://img.shields.io/pypi/dm/gnsq.svg?style=flat
-        :target: https://pypi.python.org/pypi/gnsq
+.. image:: https://readthedocs.org/projects/gnsq/badge/?version=latest
+        :target: https://gnsq.readthedocs.io/en/latest/?badge=latest
+        :alt: Documentation Status
 
 
 A `gevent`_ based python client for `NSQ`_ distributed messaging platform.
