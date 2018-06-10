@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build clean-pyc clean-docs clean-coverage clean-tox docs clean
+.PHONY: clean-pyc clean-build clean-pyc clean-docs clean-coverage clean-tests docs clean
 
 help:
 	@echo "clean-build - remove build artifacts"
@@ -11,7 +11,7 @@ help:
 	@echo "release - package and upload a release"
 	@echo "dist - package"
 
-clean: clean-build clean-pyc clean-docs clean-coverage clean-tox
+clean: clean-build clean-pyc clean-docs clean-coverage clean-tests
 
 clean-build:
 	rm -fr build/
@@ -25,6 +25,7 @@ clean-pyc:
 
 clean-docs:
 	rm -f docs/gnsq.rst
+	rm -f docs/gnsq.contrib.rst
 	rm -f docs/gnsq.stream.rst
 	rm -f docs/modules.rst
 	$(MAKE) -C docs clean
@@ -33,8 +34,10 @@ clean-coverage:
 	rm -f .coverage
 	rm -fr htmlcov/
 
-clean-tox:
+clean-tests:
 	rm -fr .tox
+	rm -fr .cache
+	rm -fr .pytest_cache
 
 lint:
 	flake8 gnsq tests
