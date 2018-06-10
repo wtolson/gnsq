@@ -1,0 +1,13 @@
+# Install gnsq itself
+-e .
+
+# Install our test and docs requirements
+-r requirements.docs.txt
+-r requirements.test.txt
+
+# Install our development requirements
+flake8
+tox
+twine
+pip>=10.0.1
+wheel>=0.31.1

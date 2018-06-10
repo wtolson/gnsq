@@ -1,11 +1,4 @@
-# Install gnsq itself
--e .
-
-# Install our development requirements
-flake8
 pytest
 pytest-cov
 pytest-timeout
 python-snappy
-tox
-wheel>=0.22

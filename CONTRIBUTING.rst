@@ -69,7 +69,7 @@ Ready to contribute? Here's how to set up `gnsq` for local development.
 
     $ mkvirtualenv gnsq
     $ cd gnsq/
-    $ pip install -r requirements.test.txt -r requirements.docs.txt
+    $ pip install -r requirements.dev.txt -r requirements.docs.txt
 
 4. Create a branch for local development::
 
