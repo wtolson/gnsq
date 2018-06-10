@@ -4,10 +4,8 @@
 # Install our development requirements
 flake8
 pytest
-pytest-capturelog
 pytest-cov
 pytest-timeout
 python-snappy
-sphinx
 tox
 wheel>=0.22
