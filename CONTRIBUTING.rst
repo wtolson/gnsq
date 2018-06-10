@@ -64,8 +64,8 @@ Ready to contribute? Here's how to set up `gnsq` for local development.
     $ git clone git@github.com:your_name_here/gnsq.git
 
 3. Install your local copy into a virtualenv. Assuming you have
-   virtualenvwrapper and libsnappy installed, this is how you set up your fork for
-   local development::
+   virtualenvwrapper and libsnappy installed, this is how you set up your fork
+   for local development::
 
     $ mkvirtualenv gnsq
     $ cd gnsq/
@@ -112,4 +112,4 @@ Tips
 
 To run a subset of tests::
 
-	$ py.test tests/test_basic.py
+    $ py.test tests/test_basic.py
