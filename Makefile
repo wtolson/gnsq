@@ -43,16 +43,16 @@ lint:
 	flake8 gnsq tests
 
 test:
-	py.test tests
+	pytest tests
 
 test-fast:
-	py.test tests --fast
+	pytest tests --fast
 
 test-all:
 	tox
 
 coverage:
-	py.test --cov gnsq --cov-report html tests
+	pytest --cov gnsq --cov-report html tests
 	open htmlcov/index.html
 
 docs: clean-docs

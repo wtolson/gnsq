@@ -81,7 +81,7 @@ Ready to contribute? Here's how to set up `gnsq` for local development.
    tests, including testing other Python versions with tox::
 
     $ flake8 gnsq tests
-    $ py.test
+    $ pytest
     $ tox
 
    To get flake8 and tox, just pip install them into your virtualenv.
@@ -112,4 +112,4 @@ Tips
 
 To run a subset of tests::
 
-    $ py.test tests/test_basic.py
+    $ pytest tests/test_basic.py
