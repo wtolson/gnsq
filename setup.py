@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
-
 try:
     from setuptools import setup
 except ImportError:
@@ -10,14 +8,6 @@ except ImportError:
 
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
-
-
-# gevent has dropped support for py26 in versions 1.2 and later, so
-# install the last 1.1 series if we're on py26.
-if sys.version_info[0] == 2 and sys.version_info[1] == 6:
-    gevent_version = ' < 1.2.0'
-else:
-    gevent_version = ''
 
 
 setup(
@@ -37,7 +27,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'blinker',
-        'gevent' + gevent_version,
+        'gevent',
         'six',
         'urllib3',
     ],
@@ -48,15 +38,15 @@ setup(
     zip_safe=False,
     keywords='gnsq',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ]
 )

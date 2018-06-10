@@ -38,7 +38,7 @@ Or even better, if you have virtualenvwrapper installed::
     $ mkvirtualenv gnsq
     $ pip install gnsq
 
-Currently there is support for Python 2.6+, Python 3.3+ and PyPy.
+Currently there is support for Python 2.7+, Python 3.4+ and PyPy.
 
 Usage
 -----
