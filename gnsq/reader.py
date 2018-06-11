@@ -487,7 +487,7 @@ class Reader(object):
 
         # first set RDY 0 to all connections that have not received a message
         # within a configurable timeframe (low_ready_idle_timeout).
-        for conn in self.conns:
+        for conn in list(self.conns):
             if conn.ready_count == 0:
                 continue
 
