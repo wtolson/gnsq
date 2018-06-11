@@ -8,16 +8,6 @@ import sys
 import tempfile
 
 
-def with_all(head, *tail):
-    def decorator(fn, *args):
-        with head as arg:
-            args = args + (arg,)
-            if not tail:
-                return fn(*args)
-            return with_all(*tail)(fn, *args)
-    return decorator
-
-
 class BaseIntegrationServer(object):
     protocols = ('TCP', 'HTTP')
 
