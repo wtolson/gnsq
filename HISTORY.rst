@@ -8,6 +8,7 @@ History
 ~~~~~~~~~~~
 
 * Drop support for python 2.6 and python 3.3
+* Handle changing connections during redistribute ready
 
 
 0.4.0 (2017-06-13)
