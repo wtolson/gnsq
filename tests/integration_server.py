@@ -27,20 +27,25 @@ class BaseIntegrationServer(object):
         r'(?P<address>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):(?P<port>[0-9]+)',
     ]))
 
+    version_re = re.compile(' '.join([
+        r'(?P<name>[a-z]+)',
+        r'v(?P<version>[0-9]+\.[0-9]+\.[0-9]+)(?:-[a-z]+)?',
+        r'\(built w\/(?P<go_version>[a-z0-9.-]+)\)'
+    ]))
+
     def __init__(self, address='127.0.0.1'):
         self.address = address
         self.protocol_ports = {}
         self.data_path = tempfile.mkdtemp()
+        self.name, self.version, self.go_version = self._parse_version()
 
-    @property
-    def version(self):
-        version = os.environ.get('NSQ_VERSION', '0.2.30')
-        # .partition("-")[0] handles the 1.0.0-compat case.
-        return tuple([int(v.partition('-')[0]) for v in version.split('.')])
-
-    @property
-    def cmd(self):
-        raise NotImplementedError('cmd not implemented')
+    def _parse_version(self):
+        output = subprocess.check_output([self.executable, '--version'])
+        match = self.version_re.match(output.decode('utf-8'))
+        name = match.group('name')
+        version = tuple(int(v) for v in match.group('version').split('.'))
+        go_version = match.group('go_version')
+        return name, version, go_version
 
     @property
     def tcp_port(self):
@@ -114,15 +119,18 @@ class BaseIntegrationServer(object):
 
 
 class NsqdIntegrationServer(BaseIntegrationServer):
+    executable = 'nsqd'
+
     tls_cert = os.path.join(os.path.dirname(__file__), 'cert.pem')
     tls_key = os.path.join(os.path.dirname(__file__), 'key.pem')
 
     def __init__(self, lookupd=None, **kwargs):
+        super(NsqdIntegrationServer, self).__init__(**kwargs)
+
         if self.has_https():
             self.protocols = ('TCP', 'HTTP', 'HTTPS')
 
         self.lookupd = lookupd
-        super(NsqdIntegrationServer, self).__init__(**kwargs)
 
     def has_https(self):
         return self.version >= (0, 2, 28)
@@ -138,7 +146,7 @@ class NsqdIntegrationServer(BaseIntegrationServer):
     @property
     def cmd(self):
         cmd = [
-            'nsqd',
+            self.executable,
             '--broadcast-address', self.address,
             '--tcp-address', self._random_address(),
             '--http-address', self._random_address(),
@@ -157,10 +165,12 @@ class NsqdIntegrationServer(BaseIntegrationServer):
 
 
 class LookupdIntegrationServer(BaseIntegrationServer):
+    executable = 'nsqlookupd'
+
     @property
     def cmd(self):
         return [
-            'nsqlookupd',
+            self.executable,
             '--broadcast-address', self.address,
             '--tcp-address', self._random_address(),
             '--http-address', self._random_address(),
