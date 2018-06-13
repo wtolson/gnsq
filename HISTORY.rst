@@ -8,6 +8,7 @@ History
 ~~~~~~~~~~~
 
 * Drop support for python 2.6 and python 3.3
+* Drop support for nsq < 0.3.5
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
