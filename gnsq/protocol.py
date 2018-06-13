@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import json
 import re
 import struct
+
 import six
-
-try:
-    import simplejson as json
-except ImportError:
-    import json  # pyflakes.ignore
-
 
 __all__ = [
     'MAGIC_V2',
@@ -25,7 +21,7 @@ __all__ = [
     'finish',
     'requeue',
     'close',
-    'nop'
+    'nop',
 ]
 
 MAGIC_V2 = b'  V2'
@@ -149,15 +145,19 @@ def publish(topic_name, data):
     return _command(PUB, data, topic_name)
 
 
+def multipublish_body(messages):
+    data = EMPTY.join(_packbody(m) for m in messages)
+    return _packsize(messages) + data
+
+
 def multipublish(topic_name, messages):
     assert_valid_topic_name(topic_name)
-    data = EMPTY.join(_packbody(m) for m in messages)
-    return _command(MPUB, _packsize(messages) + data, topic_name)
+    return _command(MPUB, multipublish_body(messages), topic_name)
 
 
 def deferpublish(topic_name, data, delay_ms):
     assert_valid_topic_name(topic_name)
-    return _command(DPUB, data, topic_name, six.b('%d' % delay_ms))
+    return _command(DPUB, data, topic_name, six.b('{}'.format(delay_ms)))
 
 
 def ready(count):
@@ -167,7 +167,7 @@ def ready(count):
     if count < 0:
         raise ValueError('ready count cannot be negative')
 
-    return _command(RDY, None, '%d' % count)
+    return _command(RDY, None, six.b('{}'.format(count)))
 
 
 def finish(message_id):
@@ -177,7 +177,7 @@ def finish(message_id):
 def requeue(message_id, timeout=0):
     if not isinstance(timeout, int):
         raise TypeError('requeue timeout must be an integer')
-    return _command(REQ, None, message_id, '%d' % timeout)
+    return _command(REQ, None, message_id, six.b('{}'.format(timeout)))
 
 
 def touch(message_id):
