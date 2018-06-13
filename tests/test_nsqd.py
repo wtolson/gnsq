@@ -87,8 +87,10 @@ def test_disconnected():
 def test_read(body):
     @mock_server
     def handle(socket, address):
-        socket.send(struct.pack('>l', len(body)))
-        socket.send(body)
+        assert socket.recv(4) == b'  V2'
+        socket.sendall(struct.pack('>l', len(body)))
+        socket.sendall(body)
+        assert socket.recv(1) == b''
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -108,7 +110,7 @@ def test_identify():
         data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert 'gnsq' in data['user_agent']
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -128,7 +130,7 @@ def test_negotiation():
 
         assert 'gnsq' in data['user_agent']
         resp = six.b(json.dumps({'test': 42}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -243,7 +245,7 @@ def test_error(error_msg, error, fatal):
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == b'  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -276,18 +278,18 @@ def test_sync_receive_messages():
         data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert isinstance(data, dict)
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
         msg = b'SUB topic channel\n'
         assert socket.recv(len(msg)) == msg
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
         for i in range(10):
             assert socket.recv(6) == b'RDY 1\n'
 
             body = six.b(json.dumps({'data': {'test_key': i}}))
             ts = i * 1000 * 1000
-            socket.send(mock_response_message(ts, i, i, body))
+            socket.sendall(mock_response_message(ts, i, i, body))
 
     with handle as server:
         conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
@@ -317,7 +319,7 @@ def test_sync_heartbeat():
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == b'  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'_heartbeat_'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'_heartbeat_'))
         assert socket.recv(4) == b'NOP\n'
 
     with handle as server:
@@ -339,7 +341,7 @@ def test_auth():
         assert socket.recv(6) == b'secret'
 
         resp = six.b(json.dumps({'identity': 'awesome'}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
         conn = Nsqd(
@@ -364,14 +366,14 @@ def test_identify_auth():
         assert 'gnsq' in data['user_agent']
 
         resp = six.b(json.dumps({'auth_required': True}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
         assert socket.recv(5) == b'AUTH\n'
         assert nsq.unpack_size(socket.recv(4)) == 6
         assert socket.recv(6) == b'secret'
 
         resp = six.b(json.dumps({'identity': 'awesome'}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
         conn = Nsqd(
