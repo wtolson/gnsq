@@ -1,8 +1,8 @@
 Signals
 -------
 
-Both :doc:`Reader <reader>` and :doc:`Nsqd <nsqd>` classes expose various
-signals provided by the `Blinker`_ library.
+Both :doc:`Reader <reader>` and :doc:`NsqdTCPClient <nsqd>` classes expose
+various signals provided by the `Blinker`_ library.
 
 Subscribing to signals
 ~~~~~~~~~~~~~~~~~~~~~~

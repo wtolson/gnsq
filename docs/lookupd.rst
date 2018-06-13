@@ -1,6 +1,6 @@
 Nsqlookupd client
 -----------------
 
-.. autoclass:: gnsq.Lookupd
+.. autoclass:: gnsq.LookupdClient
   :members:
   :inherited-members:

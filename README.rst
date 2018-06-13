@@ -47,7 +47,7 @@ First make sure nsq is `installed and running`_. Next create a nsqd connection
 and publish some messages to your topic::
 
     import gnsq
-    conn = gnsq.Nsqd(address='localhost', http_port=4151)
+    conn = gnsq.NsqdHTTPClient('localhost', 4151)
 
     conn.publish('topic', 'hello gevent!')
     conn.publish('topic', 'hello nsq!')

@@ -9,7 +9,7 @@ from integration_server import NsqdIntegrationServer
 @pytest.mark.timeout(60)
 def test_basic():
     with NsqdIntegrationServer() as server:
-        conn = gnsq.Nsqd(server.address, http_port=server.http_port)
+        conn = gnsq.NsqdHTTPClient(server.address, server.http_port)
         assert conn.ping() == b'OK'
         assert 'topics' in conn.stats()
         assert 'version' in conn.info()
@@ -19,7 +19,7 @@ def test_basic():
 @pytest.mark.timeout(60)
 def test_topics_channels():
     with NsqdIntegrationServer() as server:
-        conn = gnsq.Nsqd(server.address, http_port=server.http_port)
+        conn = gnsq.NsqdHTTPClient(server.address, server.http_port)
         assert len(conn.stats()['topics']) == 0
 
         with pytest.raises(gnsq.errors.NSQHttpError):
@@ -55,7 +55,7 @@ def test_topics_channels():
 @pytest.mark.timeout(60)
 def test_publish():
     with NsqdIntegrationServer() as server:
-        conn = gnsq.Nsqd(server.address, http_port=server.http_port)
+        conn = gnsq.NsqdHTTPClient(server.address, server.http_port)
 
         conn.publish('topic', b'sup')
         assert conn.stats()['topics'][0]['depth'] == 1

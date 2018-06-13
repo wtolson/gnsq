@@ -6,7 +6,7 @@ import pytest
 import gevent
 
 from six.moves import range
-from gnsq import Nsqd, Reader, states
+from gnsq import NsqdHTTPClient, NsqdTCPClient, Reader, states
 from gnsq.errors import NSQSocketError
 
 from integration_server import LookupdIntegrationServer, NsqdIntegrationServer
@@ -66,14 +66,9 @@ def test_messages():
             total = 500
             error = None
 
-        conn = Nsqd(
-            address=server.address,
-            tcp_port=server.tcp_port,
-            http_port=server.http_port,
-        )
-
+        conn = NsqdHTTPClient(server.address, server.http_port)
         for _ in range(Accounting.total):
-            conn.publish_http('test', b'danger zone!')
+            conn.publish('test', b'danger zone!')
 
         reader = Reader(
             topic='test',
@@ -120,14 +115,10 @@ def test_max_concurrency():
             error = None
 
         for server in (server1, server2):
-            conn = Nsqd(
-                address=server.address,
-                tcp_port=server.tcp_port,
-                http_port=server.http_port,
-            )
+            conn = NsqdHTTPClient(server.address, server.http_port)
 
             for _ in range(Accounting.total // 2):
-                conn.publish_http('test', b'danger zone!')
+                conn.publish('test', b'danger zone!')
 
         reader = Reader(
             topic='test',
@@ -183,14 +174,10 @@ def test_lookupd():
                 error = None
 
             for server in (server1, server2):
-                conn = Nsqd(
-                    address=server.address,
-                    tcp_port=server.tcp_port,
-                    http_port=server.http_port,
-                )
+                conn = NsqdHTTPClient(server.address, server.http_port)
 
                 for _ in range(Accounting.total // 2):
-                    conn.publish_http('test', b'danger zone!')
+                    conn.publish('test', b'danger zone!')
 
             reader = Reader(
                 topic='test',
@@ -227,14 +214,10 @@ def test_lookupd():
 @pytest.mark.timeout(60)
 def test_backoff():
     with NsqdIntegrationServer() as server:
-        conn = Nsqd(
-            address=server.address,
-            tcp_port=server.tcp_port,
-            http_port=server.http_port,
-        )
+        conn = NsqdHTTPClient(server.address, server.http_port)
 
         for _ in range(500):
-            conn.publish_http('test', 'danger zone!')
+            conn.publish('test', 'danger zone!')
 
         reader = Reader(
             topic='test',
@@ -261,8 +244,8 @@ def test_no_handlers():
 
 
 def test_random_ready_conn():
-    conn_1 = Nsqd('nsq1')
-    conn_2 = Nsqd('nsq2')
+    conn_1 = NsqdTCPClient('nsq1')
+    conn_2 = NsqdTCPClient('nsq2')
     reader = Reader('test', 'test', 'localhost:4150')
 
     reader.max_in_flight = 2

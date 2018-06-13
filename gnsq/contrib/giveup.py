@@ -59,11 +59,12 @@ class NsqdGiveupHandler(object):
     >>> reader.on_giving_up.connect(giveup_handler)
     """
 
-    def __init__(self, topic, nsqd_hosts=['localhost']):
+    def __init__(self, topic, nsqd_hosts=['localhost'],
+                 nsqd_class=gnsq.NsqdHTTPClient):
         if not nsqd_hosts:
             raise ValueError('at least one nsqd host is required')
         self.topic = topic
-        self.nsqds = itertools.cycle([gnsq.Nsqd(host) for host in nsqd_hosts])
+        self.nsqds = itertools.cycle([nsqd_class(host) for host in nsqd_hosts])
 
     def format_message(self, message):
         return message.body

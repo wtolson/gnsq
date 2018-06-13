@@ -14,8 +14,8 @@ from multiprocessing import cpu_count
 from gevent.queue import Queue
 from six.moves import range
 
-from .lookupd import Lookupd
-from .nsqd import Nsqd
+from .lookupd import LookupdClient
+from .nsqd import NsqdTCPClient
 from .backofftimer import BackoffTimer
 from .states import INIT, RUNNING, BACKOFF, THROTTLED, CLOSED
 from .decorators import cached_property
@@ -97,7 +97,7 @@ class Reader(object):
 
     :param backoff_on_requeue: if False, backoff will only occur on exception
 
-    :param \*\*kwargs: passed to :class:`gnsq.Nsqd` initialization
+    :param \*\*kwargs: passed to :class:`gnsq.NsqdTCPClient` initialization
     """
     def __init__(
         self,
@@ -122,12 +122,8 @@ class Reader(object):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
             raise ValueError('must specify at least on nsqd or lookupd')
 
-        nsqd_tcp_addresses = self._get_nsqds(nsqd_tcp_addresses)
-        lookupd_http_addresses = self._get_lookupds(lookupd_http_addresses)
-        random.shuffle(lookupd_http_addresses)
-
-        self.nsqd_tcp_addresses = nsqd_tcp_addresses
-        self.lookupds = [Lookupd(a) for a in lookupd_http_addresses]
+        self.nsqd_tcp_addresses = self._get_nsqds(nsqd_tcp_addresses)
+        self.lookupds = self._get_lookupds(lookupd_http_addresses)
         self.iterlookupds = cycle(self.lookupds)
 
         self.topic = topic
@@ -268,14 +264,16 @@ class Reader(object):
 
     def _get_lookupds(self, lookupd_http_addresses):
         if isinstance(lookupd_http_addresses, six.string_types):
-            return [lookupd_http_addresses]
+            return [LookupdClient.from_url(lookupd_http_addresses)]
 
-        elif isinstance(lookupd_http_addresses, (list, tuple)):
-            lookupd_http_addresses = list(lookupd_http_addresses)
-            return lookupd_http_addresses
+        if not isinstance(lookupd_http_addresses, (list, tuple)):
+            msg = 'lookupd_http_addresses must be a list, set or tuple'
+            raise TypeError(msg)
 
-        msg = 'lookupd_http_addresses must be a list, set or tuple'
-        raise TypeError(msg)
+        lookupd = [LookupdClient.from_url(a) for a in lookupd_http_addresses]
+        random.shuffle(lookupd)
+
+        return lookupd
 
     def start(self, block=True):
         """Start discovering and listing to connections."""
@@ -391,7 +389,7 @@ class Reader(object):
         self.logger.debug('querying nsqd...')
         for address in self.nsqd_tcp_addresses:
             address, port = address.split(':')
-            conn = Nsqd(address, int(port), **self.conn_kwargs)
+            conn = NsqdTCPClient(address, int(port), **self.conn_kwargs)
             self.connect_to_nsqd(conn)
 
     def query_lookupd(self):
@@ -408,12 +406,9 @@ class Reader(object):
             return
 
         for producer in producers:
-            conn = Nsqd(
-                producer.get('broadcast_address') or producer['address'],
-                producer['tcp_port'],
-                producer['http_port'],
-                **self.conn_kwargs
-            )
+            address = producer.get('broadcast_address') or producer['address']
+            port = producer['tcp_port']
+            conn = NsqdTCPClient(address, port, **self.conn_kwargs)
             self.connect_to_nsqd(conn)
 
     def create_backoff(self):

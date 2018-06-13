@@ -1,6 +1,11 @@
 Nsqd client
 -----------
 
-.. autoclass:: gnsq.Nsqd
+.. autoclass:: gnsq.NsqdHTTPClient
+  :members:
+  :inherited-members:
+
+
+.. autoclass:: gnsq.NsqdTCPClient
   :members:
   :inherited-members:

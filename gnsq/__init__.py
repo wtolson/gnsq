@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 
 from .reader import Reader
-from .nsqd import Nsqd
-from .lookupd import Lookupd
+from .nsqd import Nsqd, NsqdTCPClient, NsqdHTTPClient
+from .lookupd import Lookupd, LookupdClient
 from .message import Message
 from .backofftimer import BackoffTimer
 from .version import __version__
@@ -15,7 +15,10 @@ __version__ = __version__
 __all__ = [
     'Reader',
     'Nsqd',
+    'NsqdTCPClient',
+    'NsqdHTTPClient',
     'Lookupd',
+    'LookupdClient',
     'Message',
     'BackoffTimer',
 ]
