@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import functools
+import warnings
 
 
 class cached_property(object):
@@ -19,3 +21,13 @@ class cached_property(object):
 
         value = obj.__dict__[self.__name__] = self.func(obj)
         return value
+
+
+def deprecated(fn):
+    """Mark a function as depricated and warn the user on use."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        warnings.warn(' '.join(fn.__doc__.split()),
+                      category=DeprecationWarning, stacklevel=2)
+        return fn(*args, **kwargs)
+    return wrapper

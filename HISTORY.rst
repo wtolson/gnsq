@@ -9,6 +9,10 @@ History
 
 * Drop support for python 2.6 and python 3.3
 * Handle changing connections during redistribute ready
+* [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
+  :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
+* [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
+  :class:`gnsq.LookupdClient` instead.
 
 
 0.4.0 (2017-06-13)
