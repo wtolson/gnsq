@@ -41,10 +41,22 @@ class LookupdClient(HTTPClient):
         """Returns all known nsqd."""
         return self._request('GET', '/nodes')
 
+    def create_topic(self, topic):
+        """Add a topic to nsqlookupd's registry."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/create', fields={'topic': topic})
+
     def delete_topic(self, topic):
         """Deletes an existing topic."""
         nsq.assert_valid_topic_name(topic)
         return self._request('POST', '/topic/delete', fields={'topic': topic})
+
+    def create_channel(self, topic, channel):
+        """Add a channel to nsqlookupd's registry."""
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/create',
+                             fields={'topic': topic, 'channel': channel})
 
     def delete_channel(self, topic, channel):
         """Deletes an existing channel of an existing topic."""
