@@ -334,10 +334,6 @@ class NsqdTCPClient(object):
             otherwise `None`
         """
         self.send(nsq.identify({
-            # nsqd <0.2.28
-            'short_id': self.client_id,
-            'long_id': self.hostname,
-
             # nsqd 0.2.28+
             'client_id': self.client_id,
             'hostname': self.hostname,
