@@ -14,6 +14,7 @@ History
 * Add pause and unpause topic to NsqdHTTPClient
 * Add ablity to filter NsqdHTTPClient stats by topic/channel
 * Add text format for NsqdHTTPClient stats
+* Add binary multipublish over http
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use

@@ -545,16 +545,29 @@ class NsqdHTTPClient(HTTPClient):
         raise errors.NSQException(
             'newlines are not allowed in http multipublish')
 
-    def multipublish(self, topic, messages):
+    def multipublish(self, topic, messages, binary=False):
         """Publish an iterable of messages to the given topic over http.
 
         :param topic: the topic to publish to
 
         :param messages: iterable of bytestrings to publish
+
+        :param binary: enable binary mode. defaults to False
+            (requires nsq 1.0.0)
+
+        By default multipublish expects messages to be delimited by "\\n", use
+        the binary flag to enable binary mode where the POST body is expected
+        to be in the following wire protocal format.
         """
         nsq.assert_valid_topic_name(topic)
         fields = {'topic': topic}
-        body = b'\n'.join(self._validate_mpub_message(m) for m in messages)
+
+        if binary:
+            fields['binary'] = 'true'
+            body = nsq.multipublish_body(messages)
+        else:
+            body = b'\n'.join(self._validate_mpub_message(m) for m in messages)
+
         return self._request('POST', '/mpub', fields=fields, body=body)
 
     @deprecated
