@@ -12,6 +12,8 @@ History
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
 * Add pause and unpause topic to NsqdHTTPClient
+* Add ablity to filter NsqdHTTPClient stats by topic/channel
+* Add text format for NsqdHTTPClient stats
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use

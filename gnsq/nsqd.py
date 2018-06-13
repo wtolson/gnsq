@@ -628,9 +628,29 @@ class NsqdHTTPClient(HTTPClient):
         return self._request('POST', '/channel/unpause',
                              fields={'topic': topic, 'channel': channel})
 
-    def stats(self):
-        """Return internal instrumented statistics."""
-        return self._request('GET', '/stats', fields={'format': 'json'})
+    def stats(self, topic=None, channel=None, text=False):
+        """Return internal instrumented statistics.
+
+        :param topic: (optional) filter to topic
+
+        :param channel: (optional) filter to channel
+
+        :param text: return the stats as a string (default: False)
+        """
+        if text:
+            fields = {'format': 'text'}
+        else:
+            fields = {'format': 'json'}
+
+        if topic:
+            nsq.assert_valid_topic_name(topic)
+            fields['topic'] = topic
+
+        if channel:
+            nsq.assert_valid_channel_name(channel)
+            fields['channel'] = channel
+
+        return self._request('GET', '/stats', fields=fields)
 
     def ping(self):
         """Monitoring endpoint.
