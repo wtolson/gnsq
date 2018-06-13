@@ -1,4 +1,5 @@
 import errno
+import io
 import os
 import random
 import re
@@ -69,7 +70,6 @@ class BaseIntegrationServer(object):
             if not line:
                 raise Exception('server exited prematurely')
 
-            line = line.decode('utf-8')
             if 'listening on' not in line:
                 continue
 
@@ -87,6 +87,8 @@ class BaseIntegrationServer(object):
     def __enter__(self):
         sys.stderr.write('running: %s\n' % ' '.join(self.cmd))
         self.child = subprocess.Popen(self.cmd, stderr=subprocess.PIPE)
+        if sys.version_info[0] == 3:
+            self.child.stderr = io.TextIOWrapper(self.child.stderr, 'utf-8')
         self._parse_protocol_ports()
         return self
 
