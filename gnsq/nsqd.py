@@ -598,10 +598,23 @@ class NsqdHTTPClient(HTTPClient):
         return self._request('POST', '/channel/empty',
                              fields={'topic': topic, 'channel': channel})
 
-    def pause_channel(self, topic, channel):
+    def pause_topic(self, topic):
         """Pause message flow to all channels on an existing topic.
 
         Messages will queue at topic.
+        """
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/pause', fields={'topic': topic})
+
+    def unpause_topic(self, topic):
+        """Resume message flow to channels of an existing, paused, topic."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/unpause', fields={'topic': topic})
+
+    def pause_channel(self, topic, channel):
+        """Pause message flow to consumers of an existing channel.
+
+        Messages will queue at channel.
         """
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
@@ -609,7 +622,7 @@ class NsqdHTTPClient(HTTPClient):
                              fields={'topic': topic, 'channel': channel})
 
     def unpause_channel(self, topic, channel):
-        """Resume message flow to channels of an existing, paused, topic."""
+        """Resume message flow to consumers of an existing, paused, channel."""
         nsq.assert_valid_topic_name(topic)
         nsq.assert_valid_channel_name(channel)
         return self._request('POST', '/channel/unpause',

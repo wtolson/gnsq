@@ -11,6 +11,7 @@ History
 * Drop support for nsq < 0.3.5
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
+* Add pause and unpause topic to NsqdHTTPClient
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
