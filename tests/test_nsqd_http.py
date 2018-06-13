@@ -60,10 +60,10 @@ def test_publish():
         conn.publish('topic', b'sup')
         assert conn.stats()['topics'][0]['depth'] == 1
 
-        conn.multipublish('topic', ['sup', 'sup'])
+        conn.multipublish('topic', [b'sup', b'sup'])
         assert conn.stats()['topics'][0]['depth'] == 3
 
-        conn.multipublish('topic', iter(['sup', 'sup', 'sup']))
+        conn.multipublish('topic', iter([b'sup', b'sup', b'sup']))
         assert conn.stats()['topics'][0]['depth'] == 6
 
         conn.empty_topic('topic')
