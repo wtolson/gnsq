@@ -60,7 +60,7 @@ class Consumer(object):
     :class:`gnsq.errors.NSQRequeueMessage` is raised, the message will be
     requeued.
 
-    The Reader will handle backing off of failed messages up to a configurable
+    The Consumer will handle backing off of failed messages up to a configurable
     `max_interval` as well as automatically reconnecting to dropped connections.
 
     :param topic: specifies the desired NSQ topic
@@ -68,22 +68,22 @@ class Consumer(object):
     :param channel: specifies the desired NSQ channel
 
     :param nsqd_tcp_addresses: a sequence of string addresses of the nsqd
-        instances this reader should connect to
+        instances this consumer should connect to
 
     :param lookupd_http_addresses: a sequence of string addresses of the
-        nsqlookupd instances this reader should query for producers of the
+        nsqlookupd instances this consumer should query for producers of the
         specified topic
 
     :param name: a string that is used for logging messages (defaults to
-        'gnsq.reader.topic.channel')
+        'gnsq.consumer.topic.channel')
 
     :param message_handler: the callable that will be executed for each message
         received
 
-    :param max_tries: the maximum number of attempts the reader will make to
+    :param max_tries: the maximum number of attempts the consumer will make to
         process a message after which messages will be automatically discarded
 
-    :param max_in_flight: the maximum number of messages this reader will
+    :param max_in_flight: the maximum number of messages this consumer will
         pipeline for processing. this value will be divided evenly amongst the
         configured/discovered nsqd producers
 
@@ -93,7 +93,7 @@ class Consumer(object):
     :param lookupd_poll_interval: the amount of time in seconds between querying
         all of the supplied nsqlookupd instances.  A random amount of time based
         on this value will be initially introduced in order to add jitter when
-        multiple readers are running
+        multiple consumers are running
 
     :param lookupd_poll_jitter: the maximum fractional amount of jitter to add
         to the lookupd poll loop. This helps evenly distribute requests even if
@@ -170,7 +170,7 @@ class Consumer(object):
     def on_message(self):
         """Emitted when a message is received.
 
-        The signal sender is the reader and the `message` is sent as an
+        The signal sender is the consumer and the `message` is sent as an
         argument. The `message_handler` param is connected to this signal.
         """
         return blinker.Signal(doc='Emitted when a message is received.')
@@ -179,7 +179,7 @@ class Consumer(object):
     def on_response(self):
         """Emitted when a response is received.
 
-        The signal sender is the reader and the `response` is sent as an
+        The signal sender is the consumer and the `response` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
@@ -188,7 +188,7 @@ class Consumer(object):
     def on_error(self):
         """Emitted when an error is received.
 
-        The signal sender is the reader and the `error` is sent as an
+        The signal sender is the consumer and the `error` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a error is received.')
@@ -197,7 +197,7 @@ class Consumer(object):
     def on_finish(self):
         """Emitted after a message is successfully finished.
 
-        The signal sender is the reader and the `message_id` is sent as an
+        The signal sender is the consumer and the `message_id` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted after the a message is finished.')
@@ -206,7 +206,7 @@ class Consumer(object):
     def on_requeue(self):
         """Emitted after a message is requeued.
 
-        The signal sender is the reader and the `message_id` and `timeout`
+        The signal sender is the consumer and the `message_id` and `timeout`
         are sent as arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
@@ -218,7 +218,7 @@ class Consumer(object):
         Emitted when a message has exceeded the maximum number of attempts
         (`max_tries`) and will no longer be requeued. This is useful to perform
         tasks such as writing to disk, collecting statistics etc. The signal
-        sender is the reader and the `message` is sent as an argument.
+        sender is the consumer and the `message` is sent as an argument.
         """
         return blinker.Signal(doc='Sent after a giving up on a message.')
 
@@ -226,8 +226,8 @@ class Consumer(object):
     def on_auth(self):
         """Emitted after a connection is successfully authenticated.
 
-        The signal sender is the reader and the `conn` and parsed `response` are
-        sent as arguments.
+        The signal sender is the consumer and the `conn` and parsed `response`
+        are sent as arguments.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
 
@@ -235,7 +235,7 @@ class Consumer(object):
     def on_exception(self):
         """Emitted when an exception is caught while handling a message.
 
-        The signal sender is the reader and the `message` and `error` are sent
+        The signal sender is the consumer and the `message` and `error` are sent
         as arguments.
         """
         return blinker.Signal(doc='Emitted when an exception is caught.')
@@ -244,9 +244,9 @@ class Consumer(object):
     def on_close(self):
         """Emitted after :meth:`close`.
 
-        The signal sender is the reader.
+        The signal sender is the consumer.
         """
-        return blinker.Signal(doc='Emitted after the reader is closed.')
+        return blinker.Signal(doc='Emitted after the consumer is closed.')
 
     def start(self, block=True):
         """Start discovering and listing to connections."""
@@ -292,7 +292,7 @@ class Consumer(object):
 
     @property
     def is_running(self):
-        """Check if reader is currently running."""
+        """Check if consumer is currently running."""
         return self._state == RUNNING
 
     @property
@@ -463,7 +463,7 @@ class Consumer(object):
 
             if conn.max_ready_count < self.max_in_flight:
                 msg = (
-                    '[%s] max RDY count %d < reader max in flight %d, '
+                    '[%s] max RDY count %d < consumer max in flight %d, '
                     'truncation possible')
 
                 self.logger.warning(
