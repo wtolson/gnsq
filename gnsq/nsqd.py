@@ -431,11 +431,6 @@ class NsqdTCPClient(object):
         else:
             self.send(nsq.deferpublish(topic, data, defer))
 
-    @deprecated
-    def publish_tcp(self, topic, data, **kwargs):
-        """Deprecated. Use :method:`NsqdTCPClient.publish()` instead."""
-        self.publish(topic, data, **kwargs)
-
     def multipublish(self, topic, messages):
         """Publish an iterable of messages to the given topic over http.
 
@@ -444,11 +439,6 @@ class NsqdTCPClient(object):
         :param messages: iterable of bytestrings to publish
         """
         self.send(nsq.multipublish(topic, messages))
-
-    @deprecated
-    def multipublish_tcp(self, topic, messages, **kwargs):
-        """Deprecated. Use :method:`NsqdTCPClient.multipublish()` instead."""
-        self.multipublish(topic, messages, **kwargs)
 
     def ready(self, count):
         """Indicate you are ready to receive `count` messages."""
@@ -534,11 +524,6 @@ class NsqdHTTPClient(HTTPClient):
 
         return self._request('POST', '/pub', fields=fields, body=data)
 
-    @deprecated
-    def publish_http(self, topic, data, **kwargs):
-        """Deprecated. Use :method:`NsqdHTTPClient.publish()` instead."""
-        self.publish(topic, data, **kwargs)
-
     def _validate_mpub_message(self, message):
         if b'\n' not in message:
             return message
@@ -569,11 +554,6 @@ class NsqdHTTPClient(HTTPClient):
             body = b'\n'.join(self._validate_mpub_message(m) for m in messages)
 
         return self._request('POST', '/mpub', fields=fields, body=body)
-
-    @deprecated
-    def multipublish_http(self, topic, messages, **kwargs):
-        """Deprecated. Use :method:`NsqdHTTPClient.multipublish()` instead."""
-        self.multipublish(topic, messages, **kwargs)
 
     def create_topic(self, topic):
         """Create a topic."""
@@ -694,11 +674,31 @@ class Nsqd(object):
     def base_url(self):
         return 'http://{}:{}/'.format(self.address, self.http_port)
 
+    @deprecated
+    def publish_tcp(self, topic, data, **kwargs):
+        """Deprecated. Use :method:`NsqdTCPClient.publish()` instead."""
+        return self.__tcp_client.publish(topic, data, **kwargs)
+
+    @deprecated
+    def publish_http(self, topic, data, **kwargs):
+        """Deprecated. Use :method:`NsqdHTTPClient.publish()` instead."""
+        self.__http_client.publish(topic, data, **kwargs)
+
     def publish(self, topic, data, *args, **kwargs):
         if self.__tcp_client.is_connected:
             return self.__tcp_client.publish(topic, data, *args, **kwargs)
         else:
             return self.__http_client.publish(topic, data, *args, **kwargs)
+
+    @deprecated
+    def multipublish_tcp(self, topic, messages, **kwargs):
+        """Deprecated. Use :method:`NsqdTCPClient.multipublish()` instead."""
+        return self.__tcp_client.multipublish(topic, messages, **kwargs)
+
+    @deprecated
+    def multipublish_http(self, topic, messages, **kwargs):
+        """Deprecated. Use :method:`NsqdHTTPClient.multipublish()` instead."""
+        return self.__http_client.multipublish(topic, messages, **kwargs)
 
     def multipublish(self, topic, messages, *args, **kwargs):
         if self.__tcp_client.is_connected:
