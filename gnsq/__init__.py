@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+from .consumer import Consumer
 from .reader import Reader
 from .nsqd import Nsqd, NsqdTCPClient, NsqdHTTPClient
 from .lookupd import Lookupd, LookupdClient
@@ -13,6 +14,7 @@ __email__ = 'trevor@heytrevor.com'
 __version__ = __version__
 
 __all__ = [
+    'Consumer',
     'Reader',
     'Nsqd',
     'NsqdTCPClient',

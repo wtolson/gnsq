@@ -112,7 +112,6 @@ class NsqdTCPClient(object):
         self.state = INIT
         self.last_response = time.time()
         self.last_message = time.time()
-        self.last_ready = 0
         self.ready_count = 0
         self.in_flight = 0
         self.max_ready_count = 2500
@@ -202,7 +201,7 @@ class NsqdTCPClient(object):
         This property should be used by message handlers to reliably identify
         when to process a batch of messages.
         """
-        return self.in_flight >= max(self.last_ready * 0.85, 1)
+        return self.in_flight >= max(self.ready_count * 0.85, 1)
 
     def connect(self):
         """Initialize connection to the nsqd."""
@@ -245,7 +244,6 @@ class NsqdTCPClient(object):
 
         :returns: tuple of the frame type and the processed data.
         """
-
         response = self._read_response()
         frame, data = nsq.unpack_response(response)
         self.last_response = time.time()
@@ -276,7 +274,6 @@ class NsqdTCPClient(object):
 
     def handle_message(self, data):
         self.last_message = time.time()
-        self.ready_count = max(0, self.ready_count-1)
         self.in_flight += 1
 
         message = Message(*nsq.unpack_message(data))
@@ -442,7 +439,6 @@ class NsqdTCPClient(object):
 
     def ready(self, count):
         """Indicate you are ready to receive `count` messages."""
-        self.last_ready = count
         self.ready_count = count
         self.send(nsq.ready(count))
 
