@@ -11,7 +11,6 @@ from gevent import socket
 from gevent.lock import Semaphore
 from gevent.ssl import SSLSocket, PROTOCOL_TLSv1_2, CERT_NONE
 
-from gnsq.states import INIT, CONNECTED, DISCONNECTED
 from gnsq.errors import NSQSocketError
 
 try:
@@ -34,11 +33,10 @@ class Stream(object):
 
         self.socket = None
         self.lock = lock_class()
-        self.state = INIT
 
     @property
     def is_connected(self):
-        return self.state == CONNECTED
+        return self.socket is not None
 
     def ensure_connection(self):
         if self.is_connected:
@@ -46,7 +44,7 @@ class Stream(object):
         raise NSQSocketError(ENOTCONN, 'Socket is not connected')
 
     def connect(self):
-        if self.state not in (INIT, DISCONNECTED):
+        if self.is_connected:
             return
 
         try:
@@ -57,8 +55,6 @@ class Stream(object):
 
         except socket.error as error:
             six.raise_from(NSQSocketError(*error.args), error)
-
-        self.state = CONNECTED
 
     def read(self, size):
         while len(self.buffer) < size:
@@ -82,7 +78,7 @@ class Stream(object):
 
         return data
 
-    def send(self, data, async=False):
+    def send(self, data):
         self.ensure_connection()
 
         with self.lock:
@@ -99,8 +95,12 @@ class Stream(object):
     def close(self):
         if not self.is_connected:
             return
-        self.state = DISCONNECTED
-        self.socket.close()
+
+        socket = self.socket
+        self.socket = None
+        self.buffer = b''
+
+        socket.close()
 
     def upgrade_to_tls(
         self,
