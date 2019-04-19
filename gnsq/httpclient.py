@@ -45,6 +45,7 @@ class HTTPClient(object):
         self._connection = connection_class(host, port, **kwargs)
 
     def _request(self, method, url, headers={}, fields=None, **kwargs):
+        headers = dict(headers)
         headers.setdefault('Accept', 'application/vnd.nsq version=1.0')
         headers.setdefault('User-Agent', self.useragent)
 
