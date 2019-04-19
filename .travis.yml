@@ -8,7 +8,7 @@ python:
   - "3.5"
   - "3.4"
   - "2.7"
-  - "pypy"
+  - "pypy3.5"
 
 env:
   - NSQ_VERSION=1.0.0-compat GO_VERSION=1.8
