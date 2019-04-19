@@ -80,4 +80,5 @@ class HTTPClient(object):
             return data
 
     def __repr__(self):
-        return '<HTTPClient host={!r} port={!r}>'.format(self.host, self.port)
+        return '<{!s} host={!r} port={!r}>'.format(
+            type(self).__name__, self.host, self.port)
