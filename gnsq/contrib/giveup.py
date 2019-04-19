@@ -15,7 +15,7 @@ class LogGiveupHandler(object):
 
     Example usage:
     >>> fp = open('topic.__BURY__.log', 'w')
-    >>> reader.on_giving_up.connect(LogGiveupHandler(fp.write), weak=False)
+    >>> consumer.on_giving_up.connect(LogGiveupHandler(fp.write), weak=False)
     """
     def __init__(self, log=sys.stdout.write, newline='\n'):
         self.log = log
@@ -24,7 +24,7 @@ class LogGiveupHandler(object):
     def format_message(self, message):
         return message.body
 
-    def __call__(self, reader, message):
+    def __call__(self, consumer, message):
         self.log(self.format_message(message) + self.newline)
 
 
@@ -36,7 +36,8 @@ class JSONLogGiveupHandler(LogGiveupHandler):
 
     Example usage:
     >>> fp = open('topic.__BURY__.log', 'w')
-    >>> reader.on_giving_up.connect(JSONLogGiveupHandler(fp.write), weak=False)
+    >>> consumer.on_giving_up.connect(
+            JSONLogGiveupHandler(fp.write), weak=False)
     """
     def format_message(self, message):
         return json.dumps({
@@ -56,7 +57,7 @@ class NsqdGiveupHandler(object):
 
     Example usage:
     >>> giveup_handler = NsqdGiveupHandler('topic.__BURY__')
-    >>> reader.on_giving_up.connect(giveup_handler)
+    >>> consumer.on_giving_up.connect(giveup_handler)
     """
 
     def __init__(self, topic, nsqd_hosts=['localhost'],
@@ -69,6 +70,6 @@ class NsqdGiveupHandler(object):
     def format_message(self, message):
         return message.body
 
-    def __call__(self, reader, message):
+    def __call__(self, consumer, message):
         nsq = self.nsqds.next()
         nsq.publish(self.topic, self.format_message(message))

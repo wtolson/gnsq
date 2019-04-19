@@ -14,12 +14,11 @@ TIMEOUT_WARNING = 'batching timed out. batch size may be to large'
 class BatchHandler(object):
     """Batch message handler for gnsq.
 
-    The batch handler assumes the reader is in async mode and the inflight is
-    larger then the batch size.
+    The batch handler assumes the max inflight is larger then the batch size.
 
     Example usage:
-    >>> reader = Reader('topic', 'worker', async=True, max_in_flight=16)
-    >>> reader.on_message.connect(BatchHandler(8, my_handler), weak=False)
+    >>> consumer = Consumer('topic', 'worker', max_in_flight=16)
+    >>> consumer.on_message.connect(BatchHandler(8, my_handler), weak=False)
     """
     def __init__(self, batch_size, handle_batch=None, handle_message=None,
                  handle_batch_error=None, handle_message_error=None,
@@ -48,7 +47,8 @@ class BatchHandler(object):
 
         self.worker = gevent.spawn(self._run)
 
-    def __call__(self, reader, message):
+    def __call__(self, consumer, message):
+        message.enable_async()
         self.message_channel.put(message)
 
     def _run(self):
