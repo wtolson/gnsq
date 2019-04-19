@@ -14,7 +14,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   reader
+   consumer
    nsqd
    lookupd
    message

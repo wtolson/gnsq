@@ -52,15 +52,15 @@ and publish some messages to your topic::
     conn.publish('topic', 'hello gevent!')
     conn.publish('topic', 'hello nsq!')
 
-Then create a Reader to consume messages from your topic::
+Then create a Consumer to consume messages from your topic::
 
-    reader = gnsq.Reader('topic', 'channel', 'localhost:4150')
+    consumer = gnsq.Consumer('topic', 'channel', 'localhost:4150')
 
-    @reader.on_message.connect
-    def handler(reader, message):
+    @consumer.on_message.connect
+    def handler(consumer, message):
         print 'got message:', message.body
 
-    reader.start()
+    consumer.start()
 
 Dependencies
 ------------
