@@ -420,7 +420,7 @@ class NsqdTCPClient(object):
 
         :param data: bytestring data to publish
 
-        :param defer: duration in millisconds to defer before publishing
+        :param defer: duration in milliseconds to defer before publishing
             (requires nsq 0.3.6)
         """
         if defer is None:
