@@ -7,7 +7,7 @@ History
 1.0.0 (TBD)
 ~~~~~~~~~~~
 
-* Drop support for python 2.6 and python 3.3
+* Drop support for python 2.6 and python 3.3, add support for python 3.7
 * Drop support for nsq < 0.3.5
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
@@ -19,6 +19,8 @@ History
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
   :class:`gnsq.LookupdClient` instead.
+* [DEPRECATED] :class:`gnsq.Reader` is deprectated. Use
+  :class:`gnsq.Consumer` instead.
 
 
 0.4.0 (2017-06-13)
