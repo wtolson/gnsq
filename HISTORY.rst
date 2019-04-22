@@ -15,6 +15,7 @@ History
 * Add ablity to filter NsqdHTTPClient stats by topic/channel
 * Add text format for NsqdHTTPClient stats
 * Add binary multipublish over http
+* Add queue handler to the contrib package
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
