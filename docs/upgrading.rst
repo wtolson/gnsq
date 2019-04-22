@@ -42,7 +42,7 @@ Max concurrency
 ```````````````
 
 The `max_concurrency` parameter has been removed from :class:`gnsq.Consumer`.
-If you with to replicate this behavior, you should use the
+If you wish to replicate this behavior, you should use the
 :class:`messages <gnsq.contrib.QueueHandler>` in conjunction with a worker
 pool::
 
