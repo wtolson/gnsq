@@ -423,13 +423,13 @@ class Consumer(object):
         if not active:
             return ready_state
 
-        ready_avalible = self.max_in_flight - sum(ready_state.values())
-        connection_max_in_flight = ready_avalible // len(active)
+        ready_available = self.max_in_flight - sum(ready_state.values())
+        connection_max_in_flight = ready_available // len(active)
 
         for conn in active:
             ready_state[conn] = connection_max_in_flight
 
-        for conn in random.sample(active, ready_avalible % len(active)):
+        for conn in random.sample(active, ready_available % len(active)):
             ready_state[conn] += 1
 
         return ready_state
