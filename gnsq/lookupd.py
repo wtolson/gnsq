@@ -71,11 +71,6 @@ class LookupdClient(HTTPClient):
         return self._request('POST', '/topic/tombstone',
                              fields={'topic': topic, 'node': node})
 
-    @deprecated
-    def tombstone_topic_producer(self, topic, node):
-        """Deprecated. Use :method:`LookupdClient.tombstone_topic()` instead."""
-        return self.tombstone_topic(topic, node)
-
     def ping(self):
         """Monitoring endpoint.
 
@@ -105,3 +100,8 @@ class Lookupd(LookupdClient):
             kwargs.setdefault('connection_class', urllib3.HTTPSConnectionPool)
 
         return super(Lookupd, self).__init__(**kwargs)
+
+    @deprecated
+    def tombstone_topic_producer(self, topic, node):
+        """Deprecated. Use :method:`LookupdClient.tombstone_topic()` instead."""
+        return self.tombstone_topic(topic, node)
