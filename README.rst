@@ -62,6 +62,23 @@ Then create a Consumer to consume messages from your topic::
 
     consumer.start()
 
+Compatibility
+-------------
+
+For **NSQ 1.0** and later, use the major version 1 (``1.x.y``) of gnsq.
+
+For **NSQ 0.3.8** and earlier, use the major version 0 (``0.x.y``) of the
+library.
+
+The recommended way to set your requirements in your `setup.py` or
+`requirements.txt` is::
+
+    # NSQ 1.x.y
+    gnsq>=1.0.0
+
+    # NSQ 0.x.y
+    gnsq<1.0.0
+
 Dependencies
 ------------
 
