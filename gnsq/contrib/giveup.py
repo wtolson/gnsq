@@ -37,7 +37,7 @@ class JSONLogGiveupHandler(LogGiveupHandler):
     Example usage:
     >>> fp = open('topic.__BURY__.log', 'w')
     >>> consumer.on_giving_up.connect(
-            JSONLogGiveupHandler(fp.write), weak=False)
+    ...     JSONLogGiveupHandler(fp.write), weak=False)
     """
     def format_message(self, message):
         return json.dumps({
