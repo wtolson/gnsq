@@ -12,18 +12,18 @@ History
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
 * Add pause and unpause topic to NsqdHTTPClient
-* Add ablity to filter NsqdHTTPClient stats by topic/channel
+* Add ability to filter NsqdHTTPClient stats by topic/channel
 * Add text format for NsqdHTTPClient stats
 * Add binary multipublish over http
 * Add queue handler to the contrib package
 * Optimizations to better distribute ready state among the nsqd connections
-* [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
+* [DEPRECATED] :class:`gnsq.Nsqd` is deprecated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead. See
   :ref:`upgrading-to-100` for more information.
-* [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
+* [DEPRECATED] :class:`gnsq.Lookupd` is deprecated. Use
   :class:`gnsq.LookupdClient` instead. See :ref:`upgrading-to-100` for more
   information.
-* [DEPRECATED] :class:`gnsq.Reader` is deprectated. Use :class:`gnsq.Consumer`
+* [DEPRECATED] :class:`gnsq.Reader` is deprecated. Use :class:`gnsq.Consumer`
   instead.  See :ref:`upgrading-to-100` for more information.
 
 
@@ -31,7 +31,7 @@ History
 ~~~~~~~~~~~~~~~~~~
 
 * #13 - Allow use with nsq v1.0.0 (thanks @daroot)
-* Add contrib package with utlities.
+* Add contrib package with utilities.
 
 
 0.3.3 (2016-09-25)
@@ -51,7 +51,7 @@ History
 0.3.1 (2015-11-06)
 ~~~~~~~~~~~~~~~~~~
 
-* Fix negative in flight causing not throtteling after backoff.
+* Fix negative in flight causing not throttling after backoff.
 
 
 0.3.0 (2015-06-14)
@@ -82,7 +82,7 @@ History
 
 * Topics and channels are now valid to 64 characters.
 * Ephemeral topics are now valid.
-* Adjustable backoff behaviour.
+* Adjustable backoff behavior.
 
 
 0.2.0 (2014-08-03)
@@ -90,7 +90,7 @@ History
 
 * Warn on connection failure.
 * Add extra requires for snappy.
-* Add support for nsq auth protocal.
+* Add support for nsq auth protocol.
 
 
 0.1.4 (2014-07-24)
