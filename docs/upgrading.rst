@@ -80,7 +80,7 @@ The :class:`gnsq.Nsqd` client has been split into two classes, corresponding
 to the tcp and http APIs. The new classes are :class:`gnsq.NsqdTCPClient` and
 :class:`gnsq.NsqdHTTPClient` respectively.
 
-The methods `publish_tcp`, `publich_http`, `multipublish_tcp`, and
+The methods `publish_tcp`, `publish_http`, `multipublish_tcp`, and
 `multipublish_http` have been removed from the new classes.
 
 Deprecated Lookupd
