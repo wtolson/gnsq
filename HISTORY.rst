@@ -16,6 +16,7 @@ History
 * Add text format for NsqdHTTPClient stats
 * Add binary multipublish over http
 * Add queue handler to the contrib package
+* Fixed detecting if consumer is starved
 * Optimizations to better distribute ready state among the nsqd connections
 * Detect starved consumers when batching messages
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprecated. Use
