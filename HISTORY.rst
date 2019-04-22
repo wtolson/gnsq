@@ -17,6 +17,7 @@ History
 * Add binary multipublish over http
 * Add queue handler to the contrib package
 * Optimizations to better distribute ready state among the nsqd connections
+* Detect starved consumers when batching messages
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprecated. Use
   :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead. See
   :ref:`upgrading-to-100` for more information.

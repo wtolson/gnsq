@@ -9,12 +9,13 @@ from gnsq.errors import NSQException
 
 
 TIMEOUT_WARNING = 'batching timed out. batch size may be to large'
+STARVED_WARNING = 'consumer is starved. batch size may be to large'
 
 
 class BatchHandler(object):
     """Batch message handler for gnsq.
 
-    The batch handler assumes the max inflight is larger then the batch size.
+    It is recommended to use a max inflight greater than the batch size.
 
     Example usage:
     >>> consumer = Consumer('topic', 'worker', max_in_flight=16)
@@ -51,6 +52,9 @@ class BatchHandler(object):
         message.enable_async()
         self.message_channel.put(message)
 
+        if consumer.is_starved:
+            self.message_channel.put(StopIteration)
+
     def _run(self):
         while True:
             messages = []
@@ -60,6 +64,10 @@ class BatchHandler(object):
                     message = self.message_channel.get(timeout=self.timeout)
                 except gevent.queue.Empty:
                     warnings.warn(TIMEOUT_WARNING, RuntimeWarning)
+                    break
+
+                if message is StopIteration:
+                    warnings.warn(STARVED_WARNING, RuntimeWarning)
                     break
 
                 messages.append(message)
