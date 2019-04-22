@@ -21,6 +21,7 @@ Contents
    signals
    contributing
    authors
+   upgrading
    history
 
 Indices and tables

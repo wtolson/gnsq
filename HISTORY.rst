@@ -18,11 +18,13 @@ History
 * Add queue handler to the contrib package
 * Optimizations to better distribute ready state among the nsqd connections
 * [DEPRECATED] :class:`gnsq.Nsqd` is deprectated. Use
-  :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead.
+  :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead. See
+  :ref:`upgrading-to-100` for more information.
 * [DEPRECATED] :class:`gnsq.Lookupd` is deprectated. Use
-  :class:`gnsq.LookupdClient` instead.
-* [DEPRECATED] :class:`gnsq.Reader` is deprectated. Use
-  :class:`gnsq.Consumer` instead.
+  :class:`gnsq.LookupdClient` instead. See :ref:`upgrading-to-100` for more
+  information.
+* [DEPRECATED] :class:`gnsq.Reader` is deprectated. Use :class:`gnsq.Consumer`
+  instead.  See :ref:`upgrading-to-100` for more information.
 
 
 0.4.0 (2017-06-13)
