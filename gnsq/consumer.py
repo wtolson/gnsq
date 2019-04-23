@@ -129,7 +129,7 @@ class Consumer(object):
                  low_ready_idle_timeout=10, max_backoff_duration=128,
                  backoff_on_requeue=True, **kwargs):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
-            raise ValueError('must specify at least on nsqd or lookupd')
+            raise ValueError('must specify at least one nsqd or lookupd')
 
         self.nsqd_tcp_addresses = parse_nsqds(nsqd_tcp_addresses)
         self.lookupds = parse_lookupds(lookupd_http_addresses)
@@ -265,7 +265,7 @@ class Consumer(object):
             self._killables.add(self._workers.spawn(self._poll_ready))
 
         else:
-            self.logger.warn('%s all ready started', self.name)
+            self.logger.warn('%s already started', self.name)
 
         if block:
             self.join()
