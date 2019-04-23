@@ -63,6 +63,18 @@ class Consumer(object):
     The Consumer will handle backing off of failed messages up to a configurable
     `max_interval` as well as automatically reconnecting to dropped connections.
 
+    Example usage::
+
+        from gnsq import Consumer
+
+        consumer = gnsq.Consumer('topic', 'channel', 'localhost:4150')
+
+        @consumer.on_message.connect
+        def handler(consumer, message):
+            print 'got message:', message.body
+
+        consumer.start()
+
     :param topic: specifies the desired NSQ topic
 
     :param channel: specifies the desired NSQ channel
