@@ -205,7 +205,10 @@ class NsqdTCPClient(object):
 
     def connect(self):
         """Initialize connection to the nsqd."""
-        if self.state not in (INIT, DISCONNECTED):
+        if self.state == DISCONNECTED:
+            raise errors.NSQException('connection already closed')
+
+        if self.is_connected:
             return
 
         stream = Stream(self.address, self.port, self.timeout)
