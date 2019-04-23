@@ -122,24 +122,12 @@ class Consumer(object):
 
     :param **kwargs: passed to :class:`gnsq.NsqdTCPClient` initialization
     """
-    def __init__(
-        self,
-        topic,
-        channel,
-        nsqd_tcp_addresses=[],
-        lookupd_http_addresses=[],
-        name=None,
-        message_handler=None,
-        max_tries=5,
-        max_in_flight=1,
-        requeue_delay=0,
-        lookupd_poll_interval=60,
-        lookupd_poll_jitter=0.3,
-        low_ready_idle_timeout=10,
-        max_backoff_duration=128,
-        backoff_on_requeue=True,
-        **kwargs
-    ):
+    def __init__(self, topic, channel, nsqd_tcp_addresses=[],
+                 lookupd_http_addresses=[], name=None, message_handler=None,
+                 max_tries=5, max_in_flight=1, requeue_delay=0,
+                 lookupd_poll_interval=60, lookupd_poll_jitter=0.3,
+                 low_ready_idle_timeout=10, max_backoff_duration=128,
+                 backoff_on_requeue=True, **kwargs):
         if not nsqd_tcp_addresses and not lookupd_http_addresses:
             raise ValueError('must specify at least on nsqd or lookupd')
 
