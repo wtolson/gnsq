@@ -1,5 +1,5 @@
-Consumer: high-level consumer
------------------------------
+Consumer: high-level message reader
+-----------------------------------
 
 .. autoclass:: gnsq.Consumer
   :members:

@@ -1,5 +1,5 @@
-Nsqd client
------------
+Nsqd clients
+------------
 
 .. autoclass:: gnsq.NsqdHTTPClient
   :members:
