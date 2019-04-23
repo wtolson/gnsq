@@ -446,6 +446,7 @@ class Consumer(object):
             self.logger.debug('[%s] already connected', conn)
             return
 
+        self._connections[conn] = INIT
         self.logger.debug('[%s] connecting...', conn)
 
         conn.on_message.connect(self.handle_message)
@@ -454,8 +455,6 @@ class Consumer(object):
         conn.on_finish.connect(self.handle_finish)
         conn.on_requeue.connect(self.handle_requeue)
         conn.on_auth.connect(self.handle_auth)
-
-        self._connections[conn] = INIT
 
         try:
             conn.connect()
