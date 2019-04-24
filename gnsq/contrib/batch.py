@@ -124,9 +124,9 @@ class BatchHandler(object):
     def handle_message(self, message):
         """Handle a single message.
 
-        Over ride this to provide some processing and an indevidial message.
+        Over ride this to provide some processing and an individual message.
         The result of this function is what is passed to `handle_batch`. This
-        may be overridden or passed into the construtor. By default it simply
+        may be overridden or passed into the constructor. By default it simply
         returns the message.
 
         Raising an exception in `handle_message` will cause that message to be
@@ -148,13 +148,13 @@ class BatchHandler(object):
     def handle_message_error(self, error, message):
         """Handle an exception processesing an individual message.
 
-        This may be overridden or passed into the construtor.
+        This may be overridden or passed into the constructor.
         """
         pass
 
     def handle_batch_error(self, error, messages, batch):
         """Handle an exception processsing a batch of messages.
 
-        This may be overridden or passed into the construtor.
+        This may be overridden or passed into the constructor.
         """
         pass

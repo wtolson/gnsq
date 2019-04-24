@@ -24,7 +24,7 @@ class cached_property(object):
 
 
 def deprecated(fn):
-    """Mark a function as depricated and warn the user on use."""
+    """Mark a function as deprecated and warn the user on use."""
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         warnings.warn(' '.join(fn.__doc__.split()),
