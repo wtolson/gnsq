@@ -20,6 +20,7 @@ Contents
    lookupd
    message
    signals
+   contrib
    contributing
    authors
    upgrading
