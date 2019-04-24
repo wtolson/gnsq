@@ -20,13 +20,13 @@ History
 * Fixed detecting if consumer is starved
 * Optimizations to better distribute ready state among the nsqd connections
 * Detect starved consumers when batching messages
-* [DEPRECATED] :class:`gnsq.Nsqd` is deprecated. Use
-  :class:`gnsq.NsqdTCPClient` or :class:`gnsq.NsqdHTTPClient` instead. See
+* [DEPRECATED] :class:`~gnsq.Nsqd` is deprecated. Use
+  :class:`~gnsq.NsqdTCPClient` or :class:`~gnsq.NsqdHTTPClient` instead. See
   :ref:`upgrading-to-100` for more information.
-* [DEPRECATED] :class:`gnsq.Lookupd` is deprecated. Use
-  :class:`gnsq.LookupdClient` instead. See :ref:`upgrading-to-100` for more
+* [DEPRECATED] :class:`~gnsq.Lookupd` is deprecated. Use
+  :class:`~gnsq.LookupdClient` instead. See :ref:`upgrading-to-100` for more
   information.
-* [DEPRECATED] :class:`gnsq.Reader` is deprecated. Use :class:`gnsq.Consumer`
+* [DEPRECATED] :class:`~gnsq.Reader` is deprecated. Use :class:`~gnsq.Consumer`
   instead.  See :ref:`upgrading-to-100` for more information.
 
 

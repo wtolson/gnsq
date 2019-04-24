@@ -27,8 +27,8 @@ class Message(object):
     def on_requeue(self):
         """Emitted after :meth:`requeue`.
 
-        The signal sender is the message instance and sends the `timeout` and
-        a `backoff` flag as arguments.
+        The signal sender is the message instance and sends the ``timeout`` and
+        a ``backoff`` flag as arguments.
         """
         return blinker.Signal(doc='Emitted after message is requeued.')
 
@@ -43,8 +43,8 @@ class Message(object):
     def enable_async(self):
         """Enables asynchronous processing for this message.
 
-        :class:`gnsq.Consumer` will not automatically respond to the message
-        upon return of handle_message.
+        :class:`~gnsq.Consumer` will not automatically respond to the message
+        upon return of :meth:`~gnsq.Consumer.handle_message`.
         """
         self._is_async = True
 

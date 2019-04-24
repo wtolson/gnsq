@@ -25,26 +25,25 @@ be changed.
 Deprecated Reader
 ~~~~~~~~~~~~~~~~~
 
-The main interface has been renamed from :class:`gnsq.Reader` to
-:class:`gnsq.Consumer`. The api remains largely the same and can be swapped out
+The main interface has been renamed from :class:`~gnsq.Reader` to
+:class:`~gnsq.Consumer`. The api remains largely the same and can be swapped out
 directly in most cases.
 
 Async messages
 ``````````````
 
-The `async` flag has been removed from the :class:`gnsq.Consumer`. Instead
+The ``async`` flag has been removed from the :class:`~gnsq.Consumer`. Instead
 :class:`messages <gnsq.Message>` has a
-:func:`message.enable_async() <gnsq.Message.enable_async>`
+:meth:`message.enable_async() <gnsq.Message.enable_async>`
 method that may be used to indicate that a message will be handled
 asynchronous.
 
 Max concurrency
 ```````````````
 
-The `max_concurrency` parameter has been removed from :class:`gnsq.Consumer`.
-If you wish to replicate this behavior, you should use the
-:class:`messages <gnsq.contrib.QueueHandler>` in conjunction with a worker
-pool::
+The ``max_concurrency`` parameter has been removed from
+:class:`~gnsq.Consumer`. If you wish to replicate this behavior, you should use
+the :class:`gnsq.contrib.QueueHandler` in conjunction with a worker pool::
 
     from gevent.pool import Pool
     from gnsq import Consumer
@@ -76,9 +75,9 @@ pool::
 Deprecated Nsqd
 ~~~~~~~~~~~~~~~
 
-The :class:`gnsq.Nsqd` client has been split into two classes, corresponding
-to the tcp and http APIs. The new classes are :class:`gnsq.NsqdTCPClient` and
-:class:`gnsq.NsqdHTTPClient` respectively.
+The :class:`~gnsq.Nsqd` client has been split into two classes, corresponding
+to the tcp and http APIs. The new classes are :class:`~gnsq.NsqdTCPClient` and
+:class:`~gnsq.NsqdHTTPClient` respectively.
 
 The methods `publish_tcp`, `publish_http`, `multipublish_tcp`, and
 `multipublish_http` have been removed from the new classes.
@@ -86,10 +85,10 @@ The methods `publish_tcp`, `publish_http`, `multipublish_tcp`, and
 Deprecated Lookupd
 ~~~~~~~~~~~~~~~~~~
 
-The :class:`gnsq.Lookupd` class has been replaced by
-:class:`gnsq.LookupdClient`. :class:`gnsq.LookupdClient` can be constructed
-using the host and http port or by passing the url to
-:func:`LookupdClient.from_url() <gnsq.LookupdClient.from_url>` instead.
+The :class:`~gnsq.Lookupd` class has been replaced by
+:class:`~gnsq.LookupdClient`. :class:`~gnsq.LookupdClient` can be constructed
+using the ``host`` and ``port`` or by passing the url to
+:meth:`LookupdClient.from_url() <gnsq.LookupdClient.from_url>` instead.
 
-The method  :func:`gnsq.Lookupd.tombstone_topic_producer`
-has been renamed to :func:`gnsq.LookupdClient.tombstone_topic`.
+The method :meth:`~gnsq.Lookupd.tombstone_topic_producer`
+has been renamed to :func:`~gnsq.LookupdClient.tombstone_topic`.

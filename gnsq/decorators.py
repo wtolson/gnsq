@@ -27,7 +27,7 @@ def deprecated(fn):
     """Mark a function as deprecated and warn the user on use."""
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
-        warnings.warn(' '.join(fn.__doc__.split()),
+        warnings.warn(fn.__doc__.split('\n')[0],
                       category=DeprecationWarning, stacklevel=2)
         return fn(*args, **kwargs)
     return wrapper

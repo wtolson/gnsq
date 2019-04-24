@@ -126,7 +126,7 @@ class NsqdTCPClient(object):
     def on_message(self):
         """Emitted when a message frame is received.
 
-        The signal sender is the connection and the `message` is sent as an
+        The signal sender is the connection and the ``message`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a message frame is received.')
@@ -135,7 +135,7 @@ class NsqdTCPClient(object):
     def on_response(self):
         """Emitted when a response frame is received.
 
-        The signal sender is the connection and the `response` is sent as an
+        The signal sender is the connection and the ``response`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a response frame is received.')
@@ -144,7 +144,7 @@ class NsqdTCPClient(object):
     def on_error(self):
         """Emitted when an error frame is received.
 
-        The signal sender is the connection and the `error` is sent as an
+        The signal sender is the connection and the ``error`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a error frame is received.')
@@ -154,7 +154,7 @@ class NsqdTCPClient(object):
         """Emitted after :meth:`finish`.
 
         Sent after a message owned by this connection is successfully finished.
-        The signal sender is the connection and the `message_id` is sent as an
+        The signal sender is the connection and the ``message_id`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted after the a message is finished.')
@@ -164,8 +164,8 @@ class NsqdTCPClient(object):
         """Emitted after :meth:`requeue`.
 
         Sent after a message owned by this connection is requeued. The signal
-        sender is the connection and the `message_id`, `timeout` and `backoff`
-        flag are sent as arguments.
+        sender is the connection and the ``message_id``, ``timeout`` and
+        ``backoff`` flag are sent as arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
 
@@ -173,12 +173,11 @@ class NsqdTCPClient(object):
     def on_auth(self):
         """Emitted after the connection is successfully authenticated.
 
-        The signal sender is the connection and the parsed `response` is sent as
-        arguments.
+        The signal sender is the connection and the parsed ``response`` is sent
+        as arguments.
         """
         return blinker.Signal(
-            doc='Emitted after the connection is successfully authenticated.'
-        )
+            doc='Emitted after the connection is successfully authenticated.')
 
     @cached_property
     def on_close(self):
@@ -331,7 +330,7 @@ class NsqdTCPClient(object):
         """Update client metadata on the server and negotiate features.
 
         :returns: nsqd response data if there was feature negotiation,
-            otherwise `None`
+            otherwise ``None``
         """
         self.send(nsq.identify({
             # nsqd 0.2.28+
@@ -441,7 +440,7 @@ class NsqdTCPClient(object):
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
-        """Indicate you are ready to receive `count` messages."""
+        """Indicate you are ready to receive ``count`` messages."""
         self.ready_count = count
         self.send(nsq.ready(count))
 
@@ -539,9 +538,9 @@ class NsqdHTTPClient(HTTPClient):
         :param binary: enable binary mode. defaults to False
             (requires nsq 1.0.0)
 
-        By default multipublish expects messages to be delimited by "\\n", use
-        the binary flag to enable binary mode where the POST body is expected
-        to be in the following wire protocal format.
+        By default multipublish expects messages to be delimited by ``"\\n"``,
+        use the binary flag to enable binary mode where the POST body is
+        expected to be in the following wire protocol format.
         """
         nsq.assert_valid_topic_name(topic)
         fields = {'topic': topic}
@@ -627,7 +626,7 @@ class NsqdHTTPClient(HTTPClient):
 
         :param channel: (optional) filter to channel
 
-        :param text: return the stats as a string (default: False)
+        :param text: return the stats as a string (default: ``False``)
         """
         if text:
             fields = {'format': 'text'}
@@ -647,7 +646,7 @@ class NsqdHTTPClient(HTTPClient):
     def ping(self):
         """Monitoring endpoint.
 
-        :returns: should return `"OK"`, otherwise raises an exception.
+        :returns: should return ``"OK"``, otherwise raises an exception.
         """
         return self._request('GET', '/ping')
 
@@ -657,11 +656,17 @@ class NsqdHTTPClient(HTTPClient):
 
 
 class Nsqd(object):
+    """Use :class:`NsqdTCPClient` or :class:`NsqdHTTPClient` instead.
+
+    .. deprecated:: 1.0.0
+    """
     @deprecated
     def __init__(self, address='127.0.0.1', tcp_port=4150, http_port=4151,
                  **kwargs):
-        """Deprecated. Use :class:`NsqdTCPClient` or :class:`NsqdHTTPClient`
-        instead."""
+        """Use :class:`NsqdTCPClient` or :class:`NsqdHTTPClient` instead.
+
+        .. deprecated:: 1.0.0
+        """
         self.address = address
         self.tcp_port = tcp_port
         self.http_port = http_port
@@ -675,12 +680,18 @@ class Nsqd(object):
 
     @deprecated
     def publish_tcp(self, topic, data, **kwargs):
-        """Deprecated. Use :method:`NsqdTCPClient.publish()` instead."""
+        """Use :meth:`NsqdTCPClient.publish` instead.
+
+        .. deprecated:: 1.0.0
+        """
         return self.__tcp_client.publish(topic, data, **kwargs)
 
     @deprecated
     def publish_http(self, topic, data, **kwargs):
-        """Deprecated. Use :method:`NsqdHTTPClient.publish()` instead."""
+        """Use :meth:`NsqdHTTPClient.publish` instead.
+
+        .. deprecated:: 1.0.0
+        """
         self.__http_client.publish(topic, data, **kwargs)
 
     def publish(self, topic, data, *args, **kwargs):
@@ -691,12 +702,18 @@ class Nsqd(object):
 
     @deprecated
     def multipublish_tcp(self, topic, messages, **kwargs):
-        """Deprecated. Use :method:`NsqdTCPClient.multipublish()` instead."""
+        """Use :meth:`NsqdTCPClient.multipublish` instead.
+
+        .. deprecated:: 1.0.0
+        """
         return self.__tcp_client.multipublish(topic, messages, **kwargs)
 
     @deprecated
     def multipublish_http(self, topic, messages, **kwargs):
-        """Deprecated. Use :method:`NsqdHTTPClient.multipublish()` instead."""
+        """Use :meth:`NsqdHTTPClient.multipublish` instead.
+
+        .. deprecated:: 1.0.0
+        """
         return self.__http_client.multipublish(topic, messages, **kwargs)
 
     def multipublish(self, topic, messages, *args, **kwargs):

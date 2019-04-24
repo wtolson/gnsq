@@ -84,9 +84,17 @@ class LookupdClient(HTTPClient):
 
 
 class Lookupd(LookupdClient):
+    """Use :class:`LookupdClient` instead.
+
+    .. deprecated:: 1.0.0
+    """
+
     @deprecated
     def __init__(self, address='http://localhost:4161/', **kwargs):
-        """Deprecated. Use :classmethod:`LookupdClient.from_url()` instead."""
+        """Use :meth:`LookupdClient.from_url` instead.
+
+        .. deprecated:: 1.0.0
+        """
         self.address = self.base_url = address
 
         url = urllib3.util.parse_url(address)
@@ -102,6 +110,18 @@ class Lookupd(LookupdClient):
         return super(Lookupd, self).__init__(**kwargs)
 
     @deprecated
+    @property
+    def base_url(self):
+        """Use :attr:`LookupdClient.address` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        return self.address
+
+    @deprecated
     def tombstone_topic_producer(self, topic, node):
-        """Deprecated. Use :method:`LookupdClient.tombstone_topic()` instead."""
+        """Use :meth:`LookupdClient.tombstone_topic` instead.
+
+        .. deprecated:: 1.0.0
+        """
         return self.tombstone_topic(topic, node)

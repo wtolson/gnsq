@@ -9,3 +9,7 @@ Nsqd clients
 .. autoclass:: gnsq.NsqdTCPClient
   :members:
   :inherited-members:
+
+
+.. autoclass:: gnsq.Nsqd
+  :members:

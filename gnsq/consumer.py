@@ -27,16 +27,17 @@ class Consumer(object):
 
     A Consumer will connect to the nsqd tcp addresses or poll the provided
     nsqlookupd http addresses for the configured topic and send signals to
-    message handlers connected to the `on_message` signal or provided by
-    `message_handler`.
+    message handlers connected to the :attr:`on_message` signal or provided by
+    ``message_handler``.
 
     Messages will automatically be finished when the message handle returns
-    unless ``message.enable_async()`` is called. If an exception occurs or
-    :class:`gnsq.errors.NSQRequeueMessage` is raised, the message will be
-    requeued.
+    unless :meth:`message.enable_async() <gnsq.Message.enable_async>` is called.
+    If an exception occurs or :class:`~gnsq.errors.NSQRequeueMessage` is raised,
+    the message will be requeued.
 
     The Consumer will handle backing off of failed messages up to a configurable
-    `max_interval` as well as automatically reconnecting to dropped connections.
+    ``max_interval`` as well as automatically reconnecting to dropped
+    connections.
 
     Example usage::
 
@@ -62,7 +63,7 @@ class Consumer(object):
         specified topic
 
     :param name: a string that is used for logging messages (defaults to
-        'gnsq.consumer.topic.channel')
+        ``'gnsq.consumer.topic.channel'``)
 
     :param message_handler: the callable that will be executed for each message
         received
@@ -88,14 +89,15 @@ class Consumer(object):
 
     :param low_ready_idle_timeout: the amount of time in seconds to wait for a
         message from a producer when in a state where RDY counts are
-        re-distributed (ie. max_in_flight < num_producers)
+        re-distributed (ie. `max_in_flight` < `num_producers`)
 
     :param max_backoff_duration: the maximum time we will allow a backoff state
         to last in seconds. If zero, backoff wil not occur
 
-    :param backoff_on_requeue: if False, backoff will only occur on exception
+    :param backoff_on_requeue: if ``False``, backoff will only occur on
+        exception
 
-    :param **kwargs: passed to :class:`gnsq.NsqdTCPClient` initialization
+    :param **kwargs: passed to :class:`~gnsq.NsqdTCPClient` initialization
     """
     def __init__(self, topic, channel, nsqd_tcp_addresses=[],
                  lookupd_http_addresses=[], name=None, message_handler=None,
@@ -145,8 +147,8 @@ class Consumer(object):
     def on_message(self):
         """Emitted when a message is received.
 
-        The signal sender is the consumer and the `message` is sent as an
-        argument. The `message_handler` param is connected to this signal.
+        The signal sender is the consumer and the ``message`` is sent as an
+        argument. The ``message_handler`` param is connected to this signal.
         """
         return blinker.Signal(doc='Emitted when a message is received.')
 
@@ -154,7 +156,7 @@ class Consumer(object):
     def on_response(self):
         """Emitted when a response is received.
 
-        The signal sender is the consumer and the `response` is sent as an
+        The signal sender is the consumer and the ``response`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
@@ -163,7 +165,7 @@ class Consumer(object):
     def on_error(self):
         """Emitted when an error is received.
 
-        The signal sender is the consumer and the `error` is sent as an
+        The signal sender is the consumer and the ``error`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a error is received.')
@@ -172,7 +174,7 @@ class Consumer(object):
     def on_finish(self):
         """Emitted after a message is successfully finished.
 
-        The signal sender is the consumer and the `message_id` is sent as an
+        The signal sender is the consumer and the ``message_id`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted after the a message is finished.')
@@ -181,7 +183,7 @@ class Consumer(object):
     def on_requeue(self):
         """Emitted after a message is requeued.
 
-        The signal sender is the consumer and the `message_id` and `timeout`
+        The signal sender is the consumer and the ``message_id`` and ``timeout``
         are sent as arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
@@ -191,9 +193,10 @@ class Consumer(object):
         """Emitted after a giving up on a message.
 
         Emitted when a message has exceeded the maximum number of attempts
-        (`max_tries`) and will no longer be requeued. This is useful to perform
-        tasks such as writing to disk, collecting statistics etc. The signal
-        sender is the consumer and the `message` is sent as an argument.
+        (``max_tries``) and will no longer be requeued. This is useful to
+        perform tasks such as writing to disk, collecting statistics etc. The
+        signal sender is the consumer and the ``message`` is sent as an
+        argument.
         """
         return blinker.Signal(doc='Sent after a giving up on a message.')
 
@@ -201,8 +204,8 @@ class Consumer(object):
     def on_auth(self):
         """Emitted after a connection is successfully authenticated.
 
-        The signal sender is the consumer and the `conn` and parsed `response`
-        are sent as arguments.
+        The signal sender is the consumer and the ``conn`` and parsed
+        ``response`` are sent as arguments.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
 
@@ -210,8 +213,8 @@ class Consumer(object):
     def on_exception(self):
         """Emitted when an exception is caught while handling a message.
 
-        The signal sender is the consumer and the `message` and `error` are sent
-        as arguments.
+        The signal sender is the consumer and the ``message`` and ``error`` are
+        sent as arguments.
         """
         return blinker.Signal(doc='Emitted when an exception is caught.')
 

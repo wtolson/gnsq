@@ -13,9 +13,16 @@ from .states import INIT
 
 
 class Reader(Consumer):
+    """Use :class:`~gnsq.Consumer` instead.
+
+    .. deprecated:: 1.0.0
+    """
     @deprecated
     def __init__(self, *args, **kwargs):
-        """Deprecated. Use :class:`Consumer` instead."""
+        """Use :class:`~gnsq.Consumer` instead.
+
+        .. deprecated:: 1.0.0
+        """
         setattr(self, 'async', kwargs.pop('async', False))
 
         max_concurrency = kwargs.pop('max_concurrency', 0)
@@ -48,7 +55,10 @@ class Reader(Consumer):
 
     @deprecated
     def publish(self, topic, message):
-        """Deprecated. Use :class:`gnsq.Producer` instead."""
+        """Use :class:`~gnsq.Producer` instead.
+
+        .. deprecated:: 1.0.0
+        """
         if not self.connections:
             raise NSQNoConnections()
         conn = random.choice(list(self.connections))

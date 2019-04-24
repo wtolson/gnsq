@@ -25,7 +25,7 @@ class Producer(object):
     """High level NSQ producer.
 
     A Producer will connect to the nsqd tcp addresses and support async
-    publishing (``PUB`` & ``MPUB`` & ``DPUB``) of messages to ``nsqd`` over the
+    publishing (``PUB`` & ``MPUB`` & ``DPUB``) of messages to `nsqd` over the
     TCP protocol.
 
     Example publishing a message::
@@ -42,7 +42,7 @@ class Producer(object):
     :param max_backoff_duration: the maximum time we will allow a backoff state
         to last in seconds. If zero, backoff wil not occur
 
-    :param **kwargs: passed to :class:`gnsq.NsqdTCPClient` initialization
+    :param **kwargs: passed to :class:`~gnsq.NsqdTCPClient` initialization
     """
     def __init__(self, nsqd_tcp_addresses=[], max_backoff_duration=128,
                  **kwargs):
@@ -64,7 +64,7 @@ class Producer(object):
     def on_response(self):
         """Emitted when a response is received.
 
-        The signal sender is the consumer and the `response` is sent as an
+        The signal sender is the consumer and the ` ` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
@@ -73,7 +73,7 @@ class Producer(object):
     def on_error(self):
         """Emitted when an error is received.
 
-        The signal sender is the consumer and the `error` is sent as an
+        The signal sender is the consumer and the ``error`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a error is received.')
@@ -82,8 +82,8 @@ class Producer(object):
     def on_auth(self):
         """Emitted after a connection is successfully authenticated.
 
-        The signal sender is the consumer and the `conn` and parsed `response`
-        are sent as arguments.
+        The signal sender is the consumer and the ``conn`` and parsed
+        ``response`` are sent as arguments.
         """
         return blinker.Signal(doc='Emitted when a response is received.')
 
@@ -262,15 +262,15 @@ class Producer(object):
 
         :param block: wait for a connection to become available before
             publishing the message. If block is `False` and no connections
-            are available, :class:`gnsq.errors.NSQNoConnections` is raised
+            are available, :class:`~gnsq.errors.NSQNoConnections` is raised
 
         :param timeout: if timeout is a positive number, it blocks at most
-            `timeout` seconds before raising
-            :class:`gnsq.errors.NSQNoConnections`
+            ``timeout`` seconds before raising
+            :class:`~gnsq.errors.NSQNoConnections`
 
-        :param raise_error: if `True`, it blocks until a response is received
+        :param raise_error: if ``True``, it blocks until a response is received
             from the nsqd server, and any error response is raised. Otherwise
-            an :class:`gevent.event.AsyncResult` is returned
+            an :class:`~gevent.event.AsyncResult` is returned
         """
         result = AsyncResult()
         conn = self._get_connection(block=block, timeout=timeout)
@@ -296,15 +296,15 @@ class Producer(object):
 
         :param block: wait for a connection to become available before
             publishing the message. If block is `False` and no connections
-            are available, :class:`gnsq.errors.NSQNoConnections` is raised
+            are available, :class:`~gnsq.errors.NSQNoConnections` is raised
 
         :param timeout: if timeout is a positive number, it blocks at most
-            `timeout` seconds before raising
-            :class:`gnsq.errors.NSQNoConnections`
+            ``timeout`` seconds before raising
+            :class:`~gnsq.errors.NSQNoConnections`
 
-        :param raise_error: if `True`, it blocks until a response is received
+        :param raise_error: if ``True``, it blocks until a response is received
             from the nsqd server, and any error response is raised. Otherwise
-            an :class:`gevent.event.AsyncResult` is returned
+            an :class:`~gevent.event.AsyncResult` is returned
         """
         result = AsyncResult()
         conn = self._get_connection(block=block, timeout=timeout)
