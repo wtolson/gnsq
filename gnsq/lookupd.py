@@ -109,8 +109,8 @@ class Lookupd(LookupdClient):
 
         return super(Lookupd, self).__init__(**kwargs)
 
-    @deprecated
     @property
+    @deprecated
     def base_url(self):
         """Use :attr:`LookupdClient.address` instead.
 
