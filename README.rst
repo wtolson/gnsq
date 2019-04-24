@@ -43,14 +43,15 @@ Currently there is support for Python 2.7+, Python 3.4+ and PyPy.
 Usage
 -----
 
-First make sure nsq is `installed and running`_. Next create a nsqd connection
-and publish some messages to your topic::
+First make sure nsq is `installed and running`_. Next create a producer and
+publish some messages to your topic::
 
     import gnsq
-    conn = gnsq.NsqdHTTPClient('localhost', 4151)
 
-    conn.publish('topic', 'hello gevent!')
-    conn.publish('topic', 'hello nsq!')
+    producer = gnsq.Producer('localhost:4150')
+
+    producer.publish('topic', 'hello gevent!')
+    producer.publish('topic', 'hello nsq!')
 
 Then create a Consumer to consume messages from your topic::
 

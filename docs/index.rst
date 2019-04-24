@@ -15,6 +15,7 @@ Contents
    :maxdepth: 2
 
    consumer
+   producer
    nsqd
    lookupd
    message

@@ -48,7 +48,7 @@ class Reader(Consumer):
 
     @deprecated
     def publish(self, topic, message):
-        """Deprecated. Use :class:`Producer` instead."""
+        """Deprecated. Use :class:`gnsq.Producer` instead."""
         if not self.connections:
             raise NSQNoConnections()
         conn = random.choice(list(self.connections))
