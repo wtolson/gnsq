@@ -8,7 +8,7 @@ History
 ~~~~~~~~~~~
 
 * Drop support for python 2.6 and python 3.3, add support for python 3.7
-* Drop support for nsq < 0.3.5
+* Drop support for nsq < 1.0.0
 * Handle changing connections during redistribute ready
 * Add create topic and create channel to LookupdClient
 * Add pause and unpause topic to NsqdHTTPClient
