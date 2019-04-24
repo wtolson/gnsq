@@ -63,7 +63,7 @@ class Consumer(object):
         specified topic
 
     :param name: a string that is used for logging messages (defaults to
-        ``'gnsq.consumer.topic.channel'``)
+        ``'gnsq.consumer.{topic}.{channel}'``)
 
     :param message_handler: the callable that will be executed for each message
         received
