@@ -44,6 +44,22 @@ class HTTPClient(object):
         self.useragent = useragent
         self._connection = connection_class(host, port, **kwargs)
 
+    @property
+    def scheme(self):
+        return self._connection.scheme
+
+    @property
+    def host(self):
+        return self._connection.host
+
+    @property
+    def port(self):
+        return self._connection.port
+
+    @property
+    def address(self):
+        return '{}://{}:{}/'.format(self.scheme, self.host, self.port)
+
     def _request(self, method, url, headers={}, fields=None, **kwargs):
         headers = dict(headers)
         headers.setdefault('Accept', 'application/vnd.nsq version=1.0')
@@ -80,5 +96,4 @@ class HTTPClient(object):
             return data
 
     def __repr__(self):
-        return '<{!s} host={!r} port={!r}>'.format(
-            type(self).__name__, self.host, self.port)
+        return '<{!s} {!r}>'.format(type(self).__name__, self.address)
