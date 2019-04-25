@@ -1,8 +1,8 @@
 Signals
 -------
 
-Both :doc:`Reader <reader>` and :doc:`Nsqd <nsqd>` classes expose various
-signals provided by the `Blinker`_ library.
+Both :doc:`Consumer <consumer>` and :doc:`NsqdTCPClient <nsqd>` classes expose
+various signals provided by the `Blinker`_ library.
 
 Subscribing to signals
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -13,16 +13,16 @@ argument is the function that should be called when the signal is emitted,
 the optional second argument specifies a sender.  To unsubscribe from a
 signal, you can use the :meth:`~blinker.base.Signal.disconnect` method. ::
 
-    def error_handler(reader, error):
+    def error_handler(consumer, error):
         print 'Got an error:', error
 
-    reader.on_error.connect(error_handler)
+    consumer.on_error.connect(error_handler)
 
 You can also easily subscribe to signals by using
 :meth:`~blinker.base.NamedSignal.connect` as a decorator::
 
-    @reader.on_giving_up.connect
-    def handle_giving_up(reader, message):
+    @consumer.on_giving_up.connect
+    def handle_giving_up(consumer, message):
         print 'Giving up on:', message.id
 
 .. _Blinker: https://pypi.python.org/pypi/blinker

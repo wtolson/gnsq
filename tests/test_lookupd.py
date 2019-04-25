@@ -14,7 +14,7 @@ from integration_server import (
 @pytest.mark.timeout(60)
 def test_basic():
     with LookupdIntegrationServer() as server:
-        lookupd = gnsq.Lookupd(server.http_address)
+        lookupd = gnsq.LookupdClient(server.address, server.http_port)
         assert lookupd.ping() == b'OK'
         assert 'version' in lookupd.info()
 
@@ -32,15 +32,15 @@ def test_lookup():
     with LookupdIntegrationServer() as lookupd_server:
         nsqd_server = NsqdIntegrationServer(lookupd=lookupd_server.tcp_address)
         with NsqdIntegrationServer(lookupd=lookupd_server.tcp_address) as nsqd_server:
-            lookupd = gnsq.Lookupd(lookupd_server.http_address)
-            conn = gnsq.Nsqd(nsqd_server.address, http_port=nsqd_server.http_port)
+            lookupd = gnsq.LookupdClient(lookupd_server.address, lookupd_server.http_port)
+            nsqd = gnsq.NsqdHTTPClient(nsqd_server.address, nsqd_server.http_port)
             gevent.sleep(0.1)
 
             assert len(lookupd.topics()['topics']) == 0
             assert len(lookupd.channels('topic')['channels']) == 0
             assert len(lookupd.nodes()['producers']) == 1
 
-            conn.create_topic('topic')
+            nsqd.create_topic('topic')
             gevent.sleep(0.1)
 
             info = lookupd.lookup('topic')
@@ -49,7 +49,7 @@ def test_lookup():
             assert len(lookupd.topics()['topics']) == 1
             assert len(lookupd.channels('topic')['channels']) == 0
 
-            conn.create_channel('topic', 'channel')
+            nsqd.create_channel('topic', 'channel')
             gevent.sleep(0.1)
 
             info = lookupd.lookup('topic')

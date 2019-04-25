@@ -14,13 +14,16 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   reader
+   consumer
+   producer
    nsqd
    lookupd
    message
    signals
+   contrib
    contributing
    authors
+   upgrading
    history
 
 Indices and tables

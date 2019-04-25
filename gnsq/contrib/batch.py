@@ -9,17 +9,18 @@ from gnsq.errors import NSQException
 
 
 TIMEOUT_WARNING = 'batching timed out. batch size may be to large'
+STARVED_WARNING = 'consumer is starved. batch size may be to large'
 
 
 class BatchHandler(object):
     """Batch message handler for gnsq.
 
-    The batch handler assumes the reader is in async mode and the inflight is
-    larger then the batch size.
+    It is recommended to use a max inflight greater than the batch size.
 
-    Example usage:
-    >>> reader = Reader('topic', 'worker', async=True, max_in_flight=16)
-    >>> reader.on_message.connect(BatchHandler(8, my_handler), weak=False)
+    Example usage::
+
+        >>> consumer = Consumer('topic', 'worker', max_in_flight=16)
+        >>> consumer.on_message.connect(BatchHandler(8, my_handler), weak=False)
     """
     def __init__(self, batch_size, handle_batch=None, handle_message=None,
                  handle_batch_error=None, handle_message_error=None,
@@ -48,8 +49,12 @@ class BatchHandler(object):
 
         self.worker = gevent.spawn(self._run)
 
-    def __call__(self, reader, message):
+    def __call__(self, consumer, message):
+        message.enable_async()
         self.message_channel.put(message)
+
+        if consumer.is_starved:
+            self.message_channel.put(StopIteration)
 
     def _run(self):
         while True:
@@ -60,6 +65,10 @@ class BatchHandler(object):
                     message = self.message_channel.get(timeout=self.timeout)
                 except gevent.queue.Empty:
                     warnings.warn(TIMEOUT_WARNING, RuntimeWarning)
+                    break
+
+                if message is StopIteration:
+                    warnings.warn(STARVED_WARNING, RuntimeWarning)
                     break
 
                 messages.append(message)
@@ -116,37 +125,37 @@ class BatchHandler(object):
     def handle_message(self, message):
         """Handle a single message.
 
-        Over ride this to provide some processing and an indevidial message.
-        The result of this function is what is passed to `handle_batch`. This
-        may be overridden or passed into the construtor. By default it simply
-        returns the message.
+        Over ride this to provide some processing and an individual message.
+        The result of this function is what is passed to :meth:`handle_batch`.
+        This may be overridden or passed into the constructor. By default it
+        simply returns the message.
 
-        Raising an exception in `handle_message` will cause that message to be
-        requeued and excluded from the batch.
+        Raising an exception in :meth:`handle_message` will cause that message
+        to be requeued and excluded from the batch.
         """
         return message
 
     def handle_batch(self, messages):
         """Handle a batch message.
 
-        Processes a batch of messages. You must provide a `handle_batch`
+        Processes a batch of messages. You must provide a :meth:`handle_batch`
         function to the constructor or override this method.
 
-        Raising an exception in `handle_batch` will cause all messages in the
-        batch to be requeued.
+        Raising an exception in :meth:`handle_batch` will cause all messages in
+        the batch to be requeued.
         """
         raise RuntimeError('handle_message must be overridden')
 
     def handle_message_error(self, error, message):
         """Handle an exception processesing an individual message.
 
-        This may be overridden or passed into the construtor.
+        This may be overridden or passed into the constructor.
         """
         pass
 
     def handle_batch_error(self, error, messages, batch):
         """Handle an exception processsing a batch of messages.
 
-        This may be overridden or passed into the construtor.
+        This may be overridden or passed into the constructor.
         """
         pass

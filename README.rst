@@ -43,24 +43,42 @@ Currently there is support for Python 2.7+, Python 3.4+ and PyPy.
 Usage
 -----
 
-First make sure nsq is `installed and running`_. Next create a nsqd connection
-and publish some messages to your topic::
+First make sure nsq is `installed and running`_. Next create a producer and
+publish some messages to your topic::
 
     import gnsq
-    conn = gnsq.Nsqd(address='localhost', http_port=4151)
 
-    conn.publish('topic', 'hello gevent!')
-    conn.publish('topic', 'hello nsq!')
+    producer = gnsq.Producer('localhost:4150')
 
-Then create a Reader to consume messages from your topic::
+    producer.publish('topic', 'hello gevent!')
+    producer.publish('topic', 'hello nsq!')
 
-    reader = gnsq.Reader('topic', 'channel', 'localhost:4150')
+Then create a Consumer to consume messages from your topic::
 
-    @reader.on_message.connect
-    def handler(reader, message):
+    consumer = gnsq.Consumer('topic', 'channel', 'localhost:4150')
+
+    @consumer.on_message.connect
+    def handler(consumer, message):
         print 'got message:', message.body
 
-    reader.start()
+    consumer.start()
+
+Compatibility
+-------------
+
+For **NSQ 1.0** and later, use the major version 1 (``1.x.y``) of gnsq.
+
+For **NSQ 0.3.8** and earlier, use the major version 0 (``0.x.y``) of the
+library.
+
+The recommended way to set your requirements in your `setup.py` or
+`requirements.txt` is::
+
+    # NSQ 1.x.y
+    gnsq>=1.0.0
+
+    # NSQ 0.x.y
+    gnsq<1.0.0
 
 Dependencies
 ------------

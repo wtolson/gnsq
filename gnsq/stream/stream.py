@@ -4,17 +4,13 @@ from __future__ import absolute_import
 from mmap import PAGESIZE
 from errno import ENOTCONN, EDEADLK, EAGAIN, EWOULDBLOCK
 
+import six
+
 import gevent
 from gevent import socket
-from gevent.queue import Queue
-from gevent.event import AsyncResult
+from gevent.lock import Semaphore
+from gevent.ssl import SSLSocket, PROTOCOL_TLSv1_2, CERT_NONE
 
-try:
-    from gevent.ssl import SSLSocket, PROTOCOL_TLSv1_2, CERT_NONE
-except ImportError:
-    SSLSocket = None  # pyflakes.ignore
-
-from gnsq.states import INIT, CONNECTED, DISCONNECTED
 from gnsq.errors import NSQSocketError
 
 try:
@@ -26,7 +22,8 @@ from .defalte import DefalteSocket
 
 
 class Stream(object):
-    def __init__(self, address, port, timeout, buffer_size=PAGESIZE):
+    def __init__(self, address, port, timeout, buffer_size=PAGESIZE,
+                 lock_class=Semaphore):
         self.address = address
         self.port = port
         self.timeout = timeout
@@ -35,13 +32,11 @@ class Stream(object):
         self.buffer_size = buffer_size
 
         self.socket = None
-        self.worker = None
-        self.queue = Queue()
-        self.state = INIT
+        self.lock = lock_class()
 
     @property
     def is_connected(self):
-        return self.state == CONNECTED
+        return self.socket is not None
 
     def ensure_connection(self):
         if self.is_connected:
@@ -49,7 +44,7 @@ class Stream(object):
         raise NSQSocketError(ENOTCONN, 'Socket is not connected')
 
     def connect(self):
-        if self.state not in (INIT, DISCONNECTED):
+        if self.is_connected:
             return
 
         try:
@@ -59,10 +54,7 @@ class Stream(object):
             )
 
         except socket.error as error:
-            raise NSQSocketError(*error.args)
-
-        self.state = CONNECTED
-        self.worker = gevent.spawn(self.send_loop)
+            six.raise_from(NSQSocketError(*error.args), error)
 
     def read(self, size):
         while len(self.buffer) < size:
@@ -74,7 +66,7 @@ class Stream(object):
                 if error.errno in (EDEADLK, EAGAIN, EWOULDBLOCK):
                     gevent.sleep()
                     continue
-                raise NSQSocketError(*error.args)
+                six.raise_from(NSQSocketError(*error.args), error)
 
             if not packet:
                 self.close()
@@ -86,16 +78,14 @@ class Stream(object):
 
         return data
 
-    def send(self, data, async=False):
+    def send(self, data):
         self.ensure_connection()
 
-        result = AsyncResult()
-        self.queue.put((data, result))
-
-        if async:
-            return result
-
-        result.get()
+        with self.lock:
+            try:
+                return self.socket.sendall(data)
+            except socket.error as error:
+                six.raise_from(NSQSocketError(*error.args), error)
 
     def consume_buffer(self):
         data = self.buffer
@@ -106,26 +96,11 @@ class Stream(object):
         if not self.is_connected:
             return
 
-        self.state = DISCONNECTED
-        self.queue.put(StopIteration)
+        socket = self.socket
+        self.socket = None
+        self.buffer = b''
 
-    def send_loop(self):
-        for data, result in self.queue:
-            if not self.is_connected:
-                error = NSQSocketError(ENOTCONN, 'Socket is not connected')
-                result.set_exception(error)
-
-            try:
-                self.socket.sendall(data)
-                result.set()
-
-            except socket.error as error:
-                result.set_exception(NSQSocketError(*error.args))
-
-            except Exception as error:
-                result.set_exception(error)
-
-        self.socket.close()
+        socket.close()
 
     def upgrade_to_tls(
         self,
@@ -135,19 +110,19 @@ class Stream(object):
         ca_certs=None,
         ssl_version=PROTOCOL_TLSv1_2
     ):
-        if SSLSocket is None:
-            msg = 'tls_v1 requires Python 2.6+ or Python 2.5 w/ pip install ssl'
-            raise RuntimeError(msg)
-
         self.ensure_connection()
-        self.socket = SSLSocket(
-            self.socket,
-            keyfile=keyfile,
-            certfile=certfile,
-            cert_reqs=cert_reqs,
-            ca_certs=ca_certs,
-            ssl_version=ssl_version,
-        )
+
+        try:
+            self.socket = SSLSocket(
+                self.socket,
+                keyfile=keyfile,
+                certfile=certfile,
+                cert_reqs=cert_reqs,
+                ca_certs=ca_certs,
+                ssl_version=ssl_version,
+            )
+        except socket.error as error:
+            six.raise_from(NSQSocketError(*error.args), error)
 
     def upgrade_to_snappy(self):
         if SnappySocket is None:

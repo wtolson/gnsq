@@ -4,10 +4,12 @@
 class SentryExceptionHandler(object):
     """Log gnsq exceptions to sentry.
 
-    Example usage:
-    >>> from raven import Sentry
-    >>> sentry = Sentry()
-    >>> reader.on_exception.connect(SentryExceptionHandler(sentry), weak=False)
+    Example usage::
+
+        >>> from raven import Sentry
+        >>> sentry = Sentry()
+        >>> consumer.on_exception.connect(
+        ...     SentryExceptionHandler(sentry), weak=False)
     """
 
     def __init__(self, client):
@@ -21,7 +23,7 @@ class SentryExceptionHandler(object):
             'body': message.body,
         }
 
-    def __call__(self, reader, message, error):
+    def __call__(self, consumer, message, error):
         extra = {}
 
         if message:

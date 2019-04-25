@@ -13,6 +13,7 @@ class Message(object):
         self.id = id
         self.body = body
         self._has_responded = False
+        self._is_async = False
 
     @cached_property
     def on_finish(self):
@@ -26,8 +27,8 @@ class Message(object):
     def on_requeue(self):
         """Emitted after :meth:`requeue`.
 
-        The signal sender is the message instance and sends the `timeout` and
-        a `backoff` flag as arguments.
+        The signal sender is the message instance and sends the ``timeout`` and
+        a ``backoff`` flag as arguments.
         """
         return blinker.Signal(doc='Emitted after message is requeued.')
 
@@ -38,6 +39,18 @@ class Message(object):
         The signal sender is the message instance.
         """
         return blinker.Signal(doc='Emitted after message is touched.')
+
+    def enable_async(self):
+        """Enables asynchronous processing for this message.
+
+        :class:`~gnsq.Consumer` will not automatically respond to the message
+        upon return of :meth:`~gnsq.Consumer.handle_message`.
+        """
+        self._is_async = True
+
+    def is_async(self):
+        """Returns whether or not asynchronous processing has been enabled."""
+        return self._is_async
 
     def has_responded(self):
         """Returns whether or not this message has been responded to."""

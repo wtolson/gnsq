@@ -10,7 +10,7 @@ import six
 
 from six.moves import range
 from itertools import product
-from gnsq import Nsqd, Message, states, errors
+from gnsq import NsqdTCPClient, Message, states, errors
 from gnsq import protocol as nsq
 from gnsq.stream.stream import SSLSocket, DefalteSocket, SnappySocket
 
@@ -47,7 +47,7 @@ def test_connection():
         assert socket.recv(1) == b''
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         assert conn.state == states.INIT
 
         conn.connect()
@@ -67,7 +67,7 @@ def test_disconnected():
         assert socket.recv(1) == b''
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
         conn.close_stream()
         assert conn.state == states.DISCONNECTED
@@ -87,11 +87,13 @@ def test_disconnected():
 def test_read(body):
     @mock_server
     def handle(socket, address):
-        socket.send(struct.pack('>l', len(body)))
-        socket.send(body)
+        assert socket.recv(4) == b'  V2'
+        socket.sendall(struct.pack('>l', len(body)))
+        socket.sendall(body)
+        assert socket.recv(1) == b''
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         assert conn._read_response() == body
@@ -108,10 +110,10 @@ def test_identify():
         data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert 'gnsq' in data['user_agent']
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         assert conn.identify() is None
@@ -128,10 +130,10 @@ def test_negotiation():
 
         assert 'gnsq' in data['user_agent']
         resp = six.b(json.dumps({'test': 42}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         assert conn.identify()['test'] == 42
@@ -160,7 +162,7 @@ def test_command(command, args, resp):
         assert socket.recv(len(resp)) == resp
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
         getattr(conn, command)(*args)
 
@@ -175,7 +177,7 @@ def test_publish():
         assert socket.recv(3) == b'sup'
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
         conn.publish('topic', b'sup')
 
@@ -202,7 +204,7 @@ def test_multipublish():
         assert data == b''
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
         conn.multipublish('topic', [b'sup', b'sup'])
 
@@ -217,7 +219,7 @@ def test_deferpublish():
         assert socket.recv(3) == b'sup'
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
         conn.publish('topic', b'sup', defer=42)
 
@@ -243,10 +245,10 @@ def test_error(error_msg, error, fatal):
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == b'  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_ERROR, error_msg))
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         frame, resp = conn.read_response()
@@ -256,8 +258,8 @@ def test_error(error_msg, error, fatal):
 
 
 def test_hashing():
-    conn1 = Nsqd('localhost', 1337)
-    conn2 = Nsqd('localhost', 1337)
+    conn1 = NsqdTCPClient('localhost', 1337)
+    conn2 = NsqdTCPClient('localhost', 1337)
     assert conn1 == conn2
     assert not (conn1 < conn2)
     assert not (conn2 < conn1)
@@ -276,21 +278,21 @@ def test_sync_receive_messages():
         data = json.loads(socket.recv(size).decode('utf-8'))
 
         assert isinstance(data, dict)
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
         msg = b'SUB topic channel\n'
         assert socket.recv(len(msg)) == msg
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'OK'))
 
         for i in range(10):
             assert socket.recv(6) == b'RDY 1\n'
 
             body = six.b(json.dumps({'data': {'test_key': i}}))
             ts = i * 1000 * 1000
-            socket.send(mock_response_message(ts, i, i, body))
+            socket.sendall(mock_response_message(ts, i, i, body))
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         assert conn.identify() is None
@@ -317,11 +319,11 @@ def test_sync_heartbeat():
     @mock_server
     def handle(socket, address):
         assert socket.recv(4) == b'  V2'
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, b'_heartbeat_'))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, b'_heartbeat_'))
         assert socket.recv(4) == b'NOP\n'
 
     with handle as server:
-        conn = Nsqd(address='127.0.0.1', tcp_port=server.server_port)
+        conn = NsqdTCPClient('127.0.0.1', server.server_port)
         conn.connect()
 
         frame, data = conn.read_response()
@@ -339,14 +341,11 @@ def test_auth():
         assert socket.recv(6) == b'secret'
 
         resp = six.b(json.dumps({'identity': 'awesome'}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
-        conn = Nsqd(
-            address='127.0.0.1',
-            tcp_port=server.server_port,
-            auth_secret=b'secret'
-        )
+        conn = NsqdTCPClient(
+            '127.0.0.1', server.server_port, auth_secret=b'secret')
 
         conn.connect()
         resp = conn.auth()
@@ -364,21 +363,18 @@ def test_identify_auth():
         assert 'gnsq' in data['user_agent']
 
         resp = six.b(json.dumps({'auth_required': True}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
         assert socket.recv(5) == b'AUTH\n'
         assert nsq.unpack_size(socket.recv(4)) == 6
         assert socket.recv(6) == b'secret'
 
         resp = six.b(json.dumps({'identity': 'awesome'}))
-        socket.send(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
+        socket.sendall(mock_response(nsq.FRAME_TYPE_RESPONSE, resp))
 
     with handle as server:
-        conn = Nsqd(
-            address='127.0.0.1',
-            tcp_port=server.server_port,
-            auth_secret=b'secret'
-        )
+        conn = NsqdTCPClient(
+            '127.0.0.1', server.server_port, auth_secret=b'secret')
 
         @conn.on_auth.connect
         def assert_auth(conn, response):
@@ -401,7 +397,7 @@ def test_socket_upgrades(tls, deflate, snappy):
     with NsqdIntegrationServer() as server:
         options = {
             'address': server.address,
-            'tcp_port': server.tcp_port,
+            'port': server.tcp_port,
             'deflate': deflate,
             'snappy': snappy,
         }
@@ -415,7 +411,7 @@ def test_socket_upgrades(tls, deflate, snappy):
                 }
             })
 
-        conn = Nsqd(**options)
+        conn = NsqdTCPClient(**options)
         conn.connect()
         assert conn.state == states.CONNECTED
 
@@ -474,7 +470,7 @@ def test_socket_upgrades(tls, deflate, snappy):
 @pytest.mark.timeout(60)
 def test_cls_error():
     with NsqdIntegrationServer() as server:
-        conn = Nsqd(address=server.address, tcp_port=server.tcp_port)
+        conn = NsqdTCPClient(server.address, server.tcp_port)
 
         conn.connect()
         assert conn.state == states.CONNECTED

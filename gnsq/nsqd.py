@@ -1,39 +1,32 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import blinker
+import json
 import time
-import six
-from gevent import socket
 
-try:
-    import simplejson as json
-except ImportError:
-    import json  # pyflakes.ignore
+import blinker
+
+from gevent import socket
 
 from . import protocol as nsq
 from . import errors
 
+from .decorators import cached_property, deprecated
+from .httpclient import HTTPClient, USERAGENT
 from .message import Message
-from .httpclient import HTTPClient
-from .states import INIT, CONNECTED, DISCONNECTED
+from .states import CONNECTED, DISCONNECTED, INIT
 from .stream import Stream
-from .decorators import cached_property
-from .version import __version__
 
 HOSTNAME = socket.gethostname()
 SHORTNAME = HOSTNAME.split('.')[0]
-USERAGENT = 'gnsq/%s' % __version__
 
 
-class Nsqd(HTTPClient):
-    """Low level object representing a TCP or HTTP connection to nsqd.
+class NsqdTCPClient(object):
+    """Low level object representing a TCP connection to nsqd.
 
     :param address: the host or ip address of the nsqd
 
-    :param tcp_port: the nsqd tcp port to connect to
-
-    :param http_port: the nsqd http port to connect to
+    :param port: the nsqd tcp port to connect to
 
     :param timeout: the timeout for read/write operations (in seconds)
 
@@ -82,8 +75,7 @@ class Nsqd(HTTPClient):
     def __init__(
         self,
         address='127.0.0.1',
-        tcp_port=4150,
-        http_port=4151,
+        port=4150,
         timeout=60.0,
         client_id=None,
         hostname=None,
@@ -100,8 +92,7 @@ class Nsqd(HTTPClient):
         user_agent=USERAGENT,
     ):
         self.address = address
-        self.tcp_port = tcp_port
-        self.http_port = http_port
+        self.port = port
         self.timeout = timeout
 
         self.client_id = client_id or SHORTNAME
@@ -121,7 +112,6 @@ class Nsqd(HTTPClient):
         self.state = INIT
         self.last_response = time.time()
         self.last_message = time.time()
-        self.last_ready = 0
         self.ready_count = 0
         self.in_flight = 0
         self.max_ready_count = 2500
@@ -136,7 +126,7 @@ class Nsqd(HTTPClient):
     def on_message(self):
         """Emitted when a message frame is received.
 
-        The signal sender is the connection and the `message` is sent as an
+        The signal sender is the connection and the ``message`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a message frame is received.')
@@ -145,7 +135,7 @@ class Nsqd(HTTPClient):
     def on_response(self):
         """Emitted when a response frame is received.
 
-        The signal sender is the connection and the `response` is sent as an
+        The signal sender is the connection and the ``response`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a response frame is received.')
@@ -154,7 +144,7 @@ class Nsqd(HTTPClient):
     def on_error(self):
         """Emitted when an error frame is received.
 
-        The signal sender is the connection and the `error` is sent as an
+        The signal sender is the connection and the ``error`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted when a error frame is received.')
@@ -164,7 +154,7 @@ class Nsqd(HTTPClient):
         """Emitted after :meth:`finish`.
 
         Sent after a message owned by this connection is successfully finished.
-        The signal sender is the connection and the `message_id` is sent as an
+        The signal sender is the connection and the ``message_id`` is sent as an
         argument.
         """
         return blinker.Signal(doc='Emitted after the a message is finished.')
@@ -174,8 +164,8 @@ class Nsqd(HTTPClient):
         """Emitted after :meth:`requeue`.
 
         Sent after a message owned by this connection is requeued. The signal
-        sender is the connection and the `message_id`, `timeout` and `backoff`
-        flag are sent as arguments.
+        sender is the connection and the ``message_id``, ``timeout`` and
+        ``backoff`` flag are sent as arguments.
         """
         return blinker.Signal(doc='Emitted after the a message is requeued.')
 
@@ -183,12 +173,11 @@ class Nsqd(HTTPClient):
     def on_auth(self):
         """Emitted after the connection is successfully authenticated.
 
-        The signal sender is the connection and the parsed `response` is sent as
-        arguments.
+        The signal sender is the connection and the parsed ``response`` is sent
+        as arguments.
         """
         return blinker.Signal(
-            doc='Emitted after the connection is successfully authenticated.'
-        )
+            doc='Emitted after the connection is successfully authenticated.')
 
     @cached_property
     def on_close(self):
@@ -211,14 +200,17 @@ class Nsqd(HTTPClient):
         This property should be used by message handlers to reliably identify
         when to process a batch of messages.
         """
-        return self.in_flight >= max(self.last_ready * 0.85, 1)
+        return self.in_flight >= max(self.ready_count * 0.85, 1)
 
     def connect(self):
         """Initialize connection to the nsqd."""
-        if self.state not in (INIT, DISCONNECTED):
+        if self.state == DISCONNECTED:
+            raise errors.NSQException('connection already closed')
+
+        if self.is_connected:
             return
 
-        stream = Stream(self.address, self.tcp_port, self.timeout)
+        stream = Stream(self.address, self.port, self.timeout)
         stream.connect()
 
         self.stream = stream
@@ -234,9 +226,9 @@ class Nsqd(HTTPClient):
         self.state = DISCONNECTED
         self.on_close.send(self)
 
-    def send(self, data, async=False):
+    def send(self, data):
         try:
-            return self.stream.send(data, async)
+            return self.stream.send(data)
         except Exception:
             self.close_stream()
             raise
@@ -254,13 +246,12 @@ class Nsqd(HTTPClient):
 
         :returns: tuple of the frame type and the processed data.
         """
-
         response = self._read_response()
         frame, data = nsq.unpack_response(response)
         self.last_response = time.time()
 
         if frame not in self._frame_handlers:
-            raise errors.NSQFrameError('unknown frame %d' % frame)
+            raise errors.NSQFrameError('unknown frame {}'.format(frame))
 
         frame_handler = self._frame_handlers[frame]
         processed_data = frame_handler(data)
@@ -285,7 +276,6 @@ class Nsqd(HTTPClient):
 
     def handle_message(self, data):
         self.last_message = time.time()
-        self.ready_count = max(0, self.ready_count-1)
         self.in_flight += 1
 
         message = Message(*nsq.unpack_message(data))
@@ -322,7 +312,7 @@ class Nsqd(HTTPClient):
             raise errors.NSQException('expected response frame')
 
         if data != expected:
-            raise errors.NSQException('unexpected response %r' % data)
+            raise errors.NSQException('unexpected response {!r}'.format(data))
 
     def upgrade_to_tls(self):
         self.stream.upgrade_to_tls(**self.tls_options)
@@ -340,13 +330,9 @@ class Nsqd(HTTPClient):
         """Update client metadata on the server and negotiate features.
 
         :returns: nsqd response data if there was feature negotiation,
-            otherwise `None`
+            otherwise ``None``
         """
         self.send(nsq.identify({
-            # nsqd <0.2.28
-            'short_id': self.client_id,
-            'long_id': self.hostname,
-
             # nsqd 0.2.28+
             'client_id': self.client_id,
             'hostname': self.hostname,
@@ -385,8 +371,9 @@ class Nsqd(HTTPClient):
 
         except ValueError:
             self.close_stream()
-            msg = 'failed to parse IDENTIFY response JSON from nsqd: %r'
-            raise errors.NSQException(msg % data)
+            raise errors.NSQException(
+                'failed to parse IDENTIFY response JSON from nsqd: '
+                '{!r}'.format(data))
 
         self.max_ready_count = data.get('max_rdy_count', self.max_ready_count)
 
@@ -417,8 +404,9 @@ class Nsqd(HTTPClient):
             response = json.loads(data.decode('utf-8'))
         except ValueError:
             self.close_stream()
-            msg = 'failed to parse AUTH response JSON from nsqd: %r'
-            raise errors.NSQException(msg % data)
+            raise errors.NSQException(
+                'failed to parse AUTH response JSON from nsqd: '
+                '{!r}'.format(data))
 
         self.on_auth.send(self, response=response)
         return response
@@ -427,20 +415,32 @@ class Nsqd(HTTPClient):
         """Subscribe to a nsq `topic` and `channel`."""
         self.send(nsq.subscribe(topic, channel))
 
-    def publish_tcp(self, topic, data, defer=None):
-        """Publish a message to the given topic over tcp."""
+    def publish(self, topic, data, defer=None):
+        """Publish a message to the given topic over tcp.
+
+        :param topic: the topic to publish to
+
+        :param data: bytestring data to publish
+
+        :param defer: duration in milliseconds to defer before publishing
+            (requires nsq 0.3.6)
+        """
         if defer is None:
             self.send(nsq.publish(topic, data))
         else:
             self.send(nsq.deferpublish(topic, data, defer))
 
-    def multipublish_tcp(self, topic, messages):
-        """Publish an iterable of messages to the given topic over tcp."""
+    def multipublish(self, topic, messages):
+        """Publish an iterable of messages to the given topic over http.
+
+        :param topic: the topic to publish to
+
+        :param messages: iterable of bytestrings to publish
+        """
         self.send(nsq.multipublish(topic, messages))
 
     def ready(self, count):
-        """Indicate you are ready to receive `count` messages."""
-        self.last_ready = count
+        """Indicate you are ready to receive ``count`` messages."""
         self.ready_count = count
         self.send(nsq.ready(count))
 
@@ -473,151 +473,274 @@ class Nsqd(HTTPClient):
         """Send no-op to nsqd. Used to keep connection alive."""
         self.send(nsq.nop())
 
-    @property
-    def base_url(self):
-        return 'http://%s:%s/' % (self.address, self.http_port)
-
-    def publish_http(self, topic, data, defer=None):
-        """Publish a message to the given topic over http."""
-        nsq.assert_valid_topic_name(topic)
-        fields = {'topic': topic}
-
-        if defer is not None:
-            fields['defer'] = six.b('%d' % defer)
-
-        return self.http_post('/pub', fields=fields, body=data)
-
-    def _validate_http_mpub(self, message):
-        if '\n' not in message:
-            return message
-
-        error = 'newlines are not allowed in http multipublish'
-        raise errors.NSQException(error)
-
-    def multipublish_http(self, topic, messages):
-        """Publish an iterable of messages to the given topic over http."""
-        nsq.assert_valid_topic_name(topic)
-        return self.http_post(
-            url='/mpub',
-            fields={'topic': topic},
-            body='\n'.join(self._validate_http_mpub(m) for m in messages)
-        )
-
-    def create_topic(self, topic):
-        """Create a topic."""
-        nsq.assert_valid_topic_name(topic)
-        return self.http_post('/topic/create', fields={'topic': topic})
-
-    def delete_topic(self, topic):
-        """Delete a topic."""
-        nsq.assert_valid_topic_name(topic)
-        return self.http_post('/topic/delete', fields={'topic': topic})
-
-    def create_channel(self, topic, channel):
-        """Create a channel for an existing topic."""
-        nsq.assert_valid_topic_name(topic)
-        nsq.assert_valid_channel_name(channel)
-        return self.http_post(
-            url='/channel/create',
-            fields={'topic': topic, 'channel': channel},
-        )
-
-    def delete_channel(self, topic, channel):
-        """Delete an existing channel for an existing topic."""
-        nsq.assert_valid_topic_name(topic)
-        nsq.assert_valid_channel_name(channel)
-        return self.http_post(
-            url='/channel/delete',
-            fields={'topic': topic, 'channel': channel},
-        )
-
-    def empty_topic(self, topic):
-        """Empty all the queued messages for an existing topic."""
-        nsq.assert_valid_topic_name(topic)
-        return self.http_post('/topic/empty', fields={'topic': topic})
-
-    def empty_channel(self, topic, channel):
-        """Empty all the queued messages for an existing channel."""
-        nsq.assert_valid_topic_name(topic)
-        nsq.assert_valid_channel_name(channel)
-        return self.http_post(
-            url='/channel/empty',
-            fields={'topic': topic, 'channel': channel},
-        )
-
-    def pause_channel(self, topic, channel):
-        """Pause message flow to all channels on an existing topic.
-
-        Messages will queue at topic.
-        """
-        nsq.assert_valid_topic_name(topic)
-        nsq.assert_valid_channel_name(channel)
-        return self.http_post(
-            url='/channel/pause',
-            fields={'topic': topic, 'channel': channel},
-        )
-
-    def unpause_channel(self, topic, channel):
-        """Resume message flow to channels of an existing, paused, topic."""
-        nsq.assert_valid_topic_name(topic)
-        nsq.assert_valid_channel_name(channel)
-        return self.http_post(
-            url='/channel/unpause',
-            fields={'topic': topic, 'channel': channel},
-        )
-
-    def stats(self):
-        """Return internal instrumented statistics."""
-        return self.http_get('/stats', fields={'format': 'json'})
-
-    def ping(self):
-        """Monitoring endpoint.
-
-        :returns: should return `"OK"`, otherwise raises an exception.
-        """
-        return self.http_get('/ping')
-
-    def info(self):
-        """Returns version information."""
-        return self.http_get('/info')
-
-    def publish(self, topic, data, defer=None):
-        """Publish a message.
-
-        If connected, the message will be sent over tcp. Otherwise it will
-        fall back to http.
-
-        :param topic: the topic to publish to
-
-        :param data: the body of the message
-
-        :param defer: duration in millisconds to defer before publishing
-            (requires nsq 0.3.6)
-        """
-        if self.is_connected:
-            return self.publish_tcp(topic, data, defer)
-        else:
-            return self.publish_http(topic, data, defer)
-
-    def multipublish(self, topic, messages):
-        """Publish an iterable of messages in one roundtrip.
-
-        If connected, the messages will be sent over tcp. Otherwise it will
-        fall back to http.
-        """
-        if self.is_connected:
-            return self.multipublish_tcp(topic, messages)
-        else:
-            return self.multipublish_http(topic, messages)
-
     def __str__(self):
-        return '%s:%d' % (self.address, self.tcp_port)
+        return '{}:{}'.format(self.address, self.port)
 
     def __hash__(self):
         return hash(str(self))
 
     def __eq__(self, other):
-        return isinstance(other, Nsqd) and str(self) == str(other)
+        return isinstance(other, type(self)) and str(self) == str(other)
+
+    def __cmp__(self, other):
+        return hash(self) - hash(other)
+
+    def __lt__(self, other):
+        return hash(self) < hash(other)
+
+
+class NsqdHTTPClient(HTTPClient):
+    """Low level http client for nsqd.
+
+    :param host: nsqd host address (default: localhost)
+
+    :param port: nsqd http port (default: 4151)
+
+    :param useragent: useragent sent to nsqd (default:
+        ``<client_library_name>/<version>``)
+
+    :param connection_class: override the http connection class
+    """
+    def __init__(self, host='localhost', port=4151, **kwargs):
+        super(NsqdHTTPClient, self).__init__(host, port, **kwargs)
+
+    def publish(self, topic, data, defer=None):
+        """Publish a message to the given topic over http.
+
+        :param topic: the topic to publish to
+
+        :param data: bytestring data to publish
+
+        :param defer: duration in millisconds to defer before publishing
+            (requires nsq 0.3.6)
+        """
+        nsq.assert_valid_topic_name(topic)
+        fields = {'topic': topic}
+
+        if defer is not None:
+            fields['defer'] = '{}'.format(defer)
+
+        return self._request('POST', '/pub', fields=fields, body=data)
+
+    def _validate_mpub_message(self, message):
+        if b'\n' not in message:
+            return message
+        raise errors.NSQException(
+            'newlines are not allowed in http multipublish')
+
+    def multipublish(self, topic, messages, binary=False):
+        """Publish an iterable of messages to the given topic over http.
+
+        :param topic: the topic to publish to
+
+        :param messages: iterable of bytestrings to publish
+
+        :param binary: enable binary mode. defaults to False
+            (requires nsq 1.0.0)
+
+        By default multipublish expects messages to be delimited by ``"\\n"``,
+        use the binary flag to enable binary mode where the POST body is
+        expected to be in the following wire protocol format.
+        """
+        nsq.assert_valid_topic_name(topic)
+        fields = {'topic': topic}
+
+        if binary:
+            fields['binary'] = 'true'
+            body = nsq.multipublish_body(messages)
+        else:
+            body = b'\n'.join(self._validate_mpub_message(m) for m in messages)
+
+        return self._request('POST', '/mpub', fields=fields, body=body)
+
+    def create_topic(self, topic):
+        """Create a topic."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/create', fields={'topic': topic})
+
+    def delete_topic(self, topic):
+        """Delete a topic."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/delete', fields={'topic': topic})
+
+    def create_channel(self, topic, channel):
+        """Create a channel for an existing topic."""
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/create',
+                             fields={'topic': topic, 'channel': channel})
+
+    def delete_channel(self, topic, channel):
+        """Delete an existing channel for an existing topic."""
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/delete',
+                             fields={'topic': topic, 'channel': channel})
+
+    def empty_topic(self, topic):
+        """Empty all the queued messages for an existing topic."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/empty', fields={'topic': topic})
+
+    def empty_channel(self, topic, channel):
+        """Empty all the queued messages for an existing channel."""
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/empty',
+                             fields={'topic': topic, 'channel': channel})
+
+    def pause_topic(self, topic):
+        """Pause message flow to all channels on an existing topic.
+
+        Messages will queue at topic.
+        """
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/pause', fields={'topic': topic})
+
+    def unpause_topic(self, topic):
+        """Resume message flow to channels of an existing, paused, topic."""
+        nsq.assert_valid_topic_name(topic)
+        return self._request('POST', '/topic/unpause', fields={'topic': topic})
+
+    def pause_channel(self, topic, channel):
+        """Pause message flow to consumers of an existing channel.
+
+        Messages will queue at channel.
+        """
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/pause',
+                             fields={'topic': topic, 'channel': channel})
+
+    def unpause_channel(self, topic, channel):
+        """Resume message flow to consumers of an existing, paused, channel."""
+        nsq.assert_valid_topic_name(topic)
+        nsq.assert_valid_channel_name(channel)
+        return self._request('POST', '/channel/unpause',
+                             fields={'topic': topic, 'channel': channel})
+
+    def stats(self, topic=None, channel=None, text=False):
+        """Return internal instrumented statistics.
+
+        :param topic: (optional) filter to topic
+
+        :param channel: (optional) filter to channel
+
+        :param text: return the stats as a string (default: ``False``)
+        """
+        if text:
+            fields = {'format': 'text'}
+        else:
+            fields = {'format': 'json'}
+
+        if topic:
+            nsq.assert_valid_topic_name(topic)
+            fields['topic'] = topic
+
+        if channel:
+            nsq.assert_valid_channel_name(channel)
+            fields['channel'] = channel
+
+        return self._request('GET', '/stats', fields=fields)
+
+    def ping(self):
+        """Monitoring endpoint.
+
+        :returns: should return ``"OK"``, otherwise raises an exception.
+        """
+        return self._request('GET', '/ping')
+
+    def info(self):
+        """Returns version information."""
+        return self._request('GET', '/info')
+
+
+class Nsqd(object):
+    """Use :class:`NsqdTCPClient` or :class:`NsqdHTTPClient` instead.
+
+    .. deprecated:: 1.0.0
+    """
+    @deprecated
+    def __init__(self, address='127.0.0.1', tcp_port=4150, http_port=4151,
+                 **kwargs):
+        """Use :class:`NsqdTCPClient` or :class:`NsqdHTTPClient` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        self.address = address
+        self.tcp_port = tcp_port
+        self.http_port = http_port
+
+        self.__tcp_client = NsqdTCPClient(address, tcp_port, **kwargs)
+        self.__http_client = NsqdHTTPClient(address, http_port)
+
+    @property
+    def base_url(self):
+        return 'http://{}:{}/'.format(self.address, self.http_port)
+
+    @deprecated
+    def publish_tcp(self, topic, data, **kwargs):
+        """Use :meth:`NsqdTCPClient.publish` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        return self.__tcp_client.publish(topic, data, **kwargs)
+
+    @deprecated
+    def publish_http(self, topic, data, **kwargs):
+        """Use :meth:`NsqdHTTPClient.publish` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        self.__http_client.publish(topic, data, **kwargs)
+
+    def publish(self, topic, data, *args, **kwargs):
+        if self.__tcp_client.is_connected:
+            return self.__tcp_client.publish(topic, data, *args, **kwargs)
+        else:
+            return self.__http_client.publish(topic, data, *args, **kwargs)
+
+    @deprecated
+    def multipublish_tcp(self, topic, messages, **kwargs):
+        """Use :meth:`NsqdTCPClient.multipublish` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        return self.__tcp_client.multipublish(topic, messages, **kwargs)
+
+    @deprecated
+    def multipublish_http(self, topic, messages, **kwargs):
+        """Use :meth:`NsqdHTTPClient.multipublish` instead.
+
+        .. deprecated:: 1.0.0
+        """
+        return self.__http_client.multipublish(topic, messages, **kwargs)
+
+    def multipublish(self, topic, messages, *args, **kwargs):
+        if self.__tcp_client.is_connected:
+            return self.__tcp_client.multipublish(
+                topic, messages, *args, **kwargs)
+        else:
+            return self.__http_client.multipublish(
+                topic, messages, *args, **kwargs)
+
+    def __getattr__(self, name):
+        for client in (self.__tcp_client, self.__http_client):
+            try:
+                return getattr(client, name)
+            except AttributeError:
+                pass
+
+        return super(Nsqd, self).__getattr__(name)
+
+    def __str__(self):
+        return '{}:{}'.format(self.address, self.tcp_port)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and str(self) == str(other)
 
     def __cmp__(self, other):
         return hash(self) - hash(other)
