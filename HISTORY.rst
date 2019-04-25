@@ -4,8 +4,8 @@ History
 -------
 
 
-1.0.0 (TBD)
-~~~~~~~~~~~
+1.0.0 (2019-04-24)
+~~~~~~~~~~~~~~~~~~
 
 * Drop support for python 2.6 and python 3.3, add support for python 3.7
 * Drop support for nsq < 1.0.0
