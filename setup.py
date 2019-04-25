@@ -9,7 +9,7 @@ with open('README.rst') as readme_file:
 
 setup(
     name='gnsq',
-    version='1.0.0',
+    version='1.0.1',
     description='A gevent based python client for NSQ.',
     long_description=readme,
     long_description_content_type='text/x-rst',
