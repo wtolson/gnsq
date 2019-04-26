@@ -49,6 +49,7 @@ publish some messages to your topic::
     import gnsq
 
     producer = gnsq.Producer('localhost:4150')
+    producer.start()
 
     producer.publish('topic', 'hello gevent!')
     producer.publish('topic', 'hello nsq!')
