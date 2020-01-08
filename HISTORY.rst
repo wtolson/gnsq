@@ -8,6 +8,7 @@ History
 ~~~~~~~~~~~
 
 * Fix python3 bug in the giveup handler
+* Fix bug returning json data from older nsq servers
 
 
 1.0.1 (2019-04-24)

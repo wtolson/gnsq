@@ -91,7 +91,7 @@ class HTTPClient(object):
 
         # Handle 1.0.0-compat vs 0.x versions
         try:
-            data['data']
+            return data['data']
         except KeyError:
             return data
 
