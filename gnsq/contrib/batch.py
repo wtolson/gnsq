@@ -77,6 +77,8 @@ class BatchHandler(object):
                 self.spawn(self.run_batch, messages)
 
     def finish_message(self, message):
+        if message.has_responded():
+            return
         try:
             message.finish()
         except NSQException as error:
@@ -84,11 +86,11 @@ class BatchHandler(object):
 
     def finish_messages(self, messages):
         for message in messages:
-            if message.has_responded():
-                continue
             self.finish_message(message)
 
     def requeue_message(self, message):
+        if message.has_responded():
+            return
         try:
             message.requeue()
         except NSQException as error:
