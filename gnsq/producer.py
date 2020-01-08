@@ -101,7 +101,7 @@ class Producer(object):
             raise NSQException('producer already closed')
 
         if self.is_running:
-            self.logger.warn('producer already started')
+            self.logger.warning('producer already started')
             return
 
         self.logger.debug('starting producer...')
@@ -154,7 +154,7 @@ class Producer(object):
             conn.identify()
 
         except NSQException as error:
-            self.logger.warn('[%s] connection failed (%r)', conn, error)
+            self.logger.warning('[%s] connection failed (%r)', conn, error)
             self.handle_connection_failure(conn)
             return
 

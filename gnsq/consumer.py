@@ -243,7 +243,7 @@ class Consumer(object):
             self._killables.add(self._workers.spawn(self._poll_ready))
 
         else:
-            self.logger.warn('%s already started', self.name)
+            self.logger.warning('%s already started', self.name)
 
         if block:
             self.join()
@@ -305,7 +305,7 @@ class Consumer(object):
             self.logger.debug('found %d producers', len(producers))
 
         except Exception as error:
-            self.logger.warn(
+            self.logger.warning(
                 'Failed to lookup %s on %s (%s)',
                 self.topic, lookupd.address, error)
             return
@@ -355,7 +355,7 @@ class Consumer(object):
             try:
                 conn.ready(count)
             except NSQSocketError as error:
-                self.logger.warn('[%s] RDY %d failed (%r)', conn, count, error)
+                self.logger.warning('[%s] RDY %d failed (%r)', conn, count, error)
 
     def _get_unsaturated_ready_state(self):
         ready_state = {}
@@ -449,7 +449,7 @@ class Consumer(object):
             conn.subscribe(self.topic, self.channel)
 
         except NSQException as error:
-            self.logger.warn('[%s] connection failed (%r)', conn, error)
+            self.logger.warning('[%s] connection failed (%r)', conn, error)
             self.handle_connection_failure(conn)
             return
 
