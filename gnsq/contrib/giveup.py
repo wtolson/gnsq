@@ -76,5 +76,5 @@ class NsqdGiveupHandler(object):
         return message.body
 
     def __call__(self, consumer, message):
-        nsq = self.nsqds.next()
+        nsq = next(self.nsqds)
         nsq.publish(self.topic, self.format_message(message))

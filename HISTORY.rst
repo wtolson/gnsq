@@ -4,6 +4,12 @@ History
 -------
 
 
+1.0.2 (TBD)
+~~~~~~~~~~~
+
+* Fix python3 bug in the giveup handler
+
+
 1.0.1 (2019-04-24)
 ~~~~~~~~~~~~~~~~~~
 
