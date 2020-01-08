@@ -4,8 +4,8 @@ History
 -------
 
 
-1.0.2 (TBD)
-~~~~~~~~~~~
+1.0.2 (2020-01-08)
+~~~~~~~~~~~~~~~~~~
 
 * Fix python3 bug in the giveup handler
 * Fix bug returning json data from older nsq servers
