@@ -362,7 +362,7 @@ class Consumer(object):
         active = []
 
         for conn, state in self._connections.items():
-            if state == BACKOFF:
+            if state in (INIT, BACKOFF):
                 ready_state[conn] = 0
 
             else:
