@@ -355,7 +355,8 @@ class Consumer(object):
             try:
                 conn.ready(count)
             except NSQSocketError as error:
-                self.logger.warning('[%s] RDY %d failed (%r)', conn, count, error)
+                self.logger.warning(
+                    '[%s] RDY %d failed (%r)', conn, count, error)
 
     def _get_unsaturated_ready_state(self):
         ready_state = {}
