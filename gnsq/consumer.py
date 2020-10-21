@@ -362,10 +362,10 @@ class Consumer(object):
         active = []
 
         for conn, state in self._connections.items():
-            if state in (INIT, BACKOFF):
+            if state == BACKOFF:
                 ready_state[conn] = 0
 
-            else:
+            elif state in (RUNNING, THROTTLED):
                 active.append(conn)
 
         random.shuffle(active)
@@ -387,16 +387,17 @@ class Consumer(object):
             if state == BACKOFF:
                 ready_state[conn] = 0
 
-            elif state in (INIT, THROTTLED):
+            elif state == THROTTLED:
                 ready_state[conn] = 1
 
-            elif (now - conn.last_message) > self.low_ready_idle_timeout:
-                self.logger.info(
-                    '[%s] idle connection, giving up RDY count', conn)
-                ready_state[conn] = 1
+            elif state == RUNNING:
+                if (now - conn.last_message) > self.low_ready_idle_timeout:
+                    self.logger.info(
+                        '[%s] idle connection, giving up RDY count', conn)
+                    ready_state[conn] = 1
 
-            else:
-                active.append(conn)
+                else:
+                    active.append(conn)
 
         if not active:
             return ready_state
@@ -470,6 +471,7 @@ class Consumer(object):
         self.handle_connection_failure(conn)
 
     def handle_connection_success(self, conn):
+        self._connections[conn] = THROTTLED
         self._workers.spawn(self._listen, conn)
         self.redistribute_ready_state()
 
@@ -592,7 +594,7 @@ class Consumer(object):
     def _complete_backoff(self, conn):
         if self._message_backoffs[conn].is_reset():
             self._connections[conn] = RUNNING
-            self.logger.info('backoff complete, resuming normal operation')
+            self.logger.info('throttle complete, resuming normal operation')
             self.redistribute_ready_state()
         else:
             self._start_backoff(conn)
@@ -616,10 +618,6 @@ class Consumer(object):
         elif state == THROTTLED:
             self._message_backoffs[conn].success()
             self._complete_backoff(conn)
-
-        elif state == INIT:
-            self._connections[conn] = RUNNING
-            self.redistribute_ready_state()
 
     def handle_finish(self, conn, message_id):
         self.logger.debug('[%s] finished message: %s', conn, message_id)
