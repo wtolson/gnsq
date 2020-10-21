@@ -95,7 +95,7 @@ class Lookupd(LookupdClient):
 
         .. deprecated:: 1.0.0
         """
-        self.address = self.base_url = address
+        self.address = address
 
         url = urllib3.util.parse_url(address)
         if url.host:
